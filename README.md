@@ -1,4 +1,4 @@
-## Maker100-Eco   (Economy) Robotics, IoT and TinyML Machine Learning course is almost ready to be used!
+## Maker100-???   (Economy) Robotics, IoT and TinyML Machine Learning course is almost ready to be used!
 
 The currciulum for this course is at [maker100-curriculum](https://github.com/hpssjellis/maker100-curriculum)
 
