@@ -5,6 +5,8 @@
 
 ## [XIAOML-Kit youtube playlist](https://www.youtube.com/watch?v=EvNXQ0sk5Ec&list=PL57Dnr1H_egtkBZJku20Bo2zaR8KUJGpa&index=1&pp=gAQBiAQB)
 
+# General
+
 The currciulum for this course is at [maker100-curriculum](https://github.com/hpssjellis/maker100-curriculum)
 
 The next version of this course will be fully Seeedstudio [maker100-xiao-esp32s3-sense](https://github.com/hpssjellis/maker100-xiao-esp32s3-sense)
