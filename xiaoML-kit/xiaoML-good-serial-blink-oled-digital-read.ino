@@ -2,7 +2,11 @@
 #include <Wire.h>
 
 // Initialize the OLED display
-U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);  // efficient buffer   
+// u8g2.firstPage(); do { } while (u8g2.nextPage());
+
+// U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE); // full buffer
+// u8g2.sendBuffer(); // Transfer the internal memory to the display
 
 // Use a variable to track the last time the display was updated
 unsigned long previousMillis = 0;
