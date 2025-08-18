@@ -7,7 +7,7 @@ U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
 // Use a variable to track the last time the display was updated
 unsigned long previousMillis = 0;
 // Set the interval for updates (e.g., 1000ms for 1 second)
-const long interval = 1000;
+const long interval = 200;
 
 int myA0;
 
