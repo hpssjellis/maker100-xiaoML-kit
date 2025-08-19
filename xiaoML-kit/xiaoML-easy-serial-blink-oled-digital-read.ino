@@ -36,7 +36,7 @@ void loop() {
   
   u8g2.sendBuffer();
   
-  Serial.println("A0: " + String(myA0)); 
+  Serial.println("A0: " + String(myA0)+", on core " + String(xPortGetCoreID()) ); 
 
   if (myLedOff) {  //flip LED on/off
     digitalWrite(LED_BUILTIN, HIGH); // actually many boards have the LED on by grounding it to LOW
