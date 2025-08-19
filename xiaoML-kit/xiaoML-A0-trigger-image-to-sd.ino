@@ -121,10 +121,11 @@ void writeFile(fs::FS &fs, const char * path, uint8_t * data, size_t len){
 void setup() {
   Serial.begin(115200);
   pinMode(A0, INPUT);    // when HIGH take picture
+  pinMode(LED_BUILTIN,OUTPUT);
   randomSeed(analogRead(A1));  // Seed the random number generator
   imageCount = random(100000);  // so the filename count starts different each time
-  // while(!Serial); // When the serial monitor is turned on, the program starts to execute
-  delay(5000);  // to plug in serial monitor
+  // if(!Serial){delay(3000)} // This is blocking. When the serial monitor is turned on, the program starts to execute
+
 
   
   camera_config_t config;
@@ -209,7 +210,6 @@ void setup() {
 
   sd_sign = true; // sd initialization check passes
 
-//  Serial.println("Next Photo: "+String(myNextImage)+ " ms");
 
 }
 
@@ -218,22 +218,17 @@ void loop() {
   // Camera & SD available, start taking pictures
   if(camera_sign && sd_sign){
     if (myA0 > 1000){  // actually the max is 4095
+      digitalWrite(LED_BUILTIN, LOW);  // onboard LED on (weird)
     
-    // Get the current time
-  //  unsigned long now = millis();
-  
-    //If it has been more than 1 minute since the last shot, take a picture and save it to the SD card
-  //  if ((now - lastCaptureTime) >= myNextImage) {
       char filename[32];
       sprintf(filename, "/image%d.jpg", imageCount);
       photo_save(filename);
       Serial.printf("Saved picture：%s\n", filename);
       Serial.println("Picture taken since A0 was: "+ String(myA0));
-    //  Serial.println("Next Photo: "+String(myNextImage)+ " ms");
       imageCount++;
-     // lastCaptureTime = now;
-    //}
-    delay(500); // so we don't take too many images too fast
+
+      delay(500); // so we don't take too many images too fast
+      digitalWrite(LED_BUILTIN, HIGH);  // on board LED off (weird)
   }
   }
 }
