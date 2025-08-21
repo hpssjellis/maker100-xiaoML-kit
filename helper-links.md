@@ -21,3 +21,7 @@ TinyML® Case Studies   https://files.seeedstudio.com/wiki/K1100-quick-start/Tin
 
 IMU Breakout Board for XIAO-SCH.pdf   https://files.seeedstudio.com/wiki/XIAO_ML_Kit/IMU_Breakout_Board_for_XIAO_SCH.pdf
 
+
+
+3DPrinted kit: https://www.thingiverse.com/thing:6989378#google_vignette
+
