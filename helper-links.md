@@ -23,5 +23,5 @@ IMU Breakout Board for XIAO-SCH.pdf   https://files.seeedstudio.com/wiki/XIAO_ML
 
 
 
-3DPrinted kit: https://www.thingiverse.com/thing:6989378#google_vignette
+3DPrinted cse but for the Grove Vision AI V2 kit : https://www.thingiverse.com/thing:6989378#google_vignette
 
