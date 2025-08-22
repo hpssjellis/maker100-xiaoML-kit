@@ -25,3 +25,9 @@ IMU Breakout Board for XIAO-SCH.pdf   https://files.seeedstudio.com/wiki/XIAO_ML
 
 3DPrinted cse but for the Grove Vision AI V2 kit : https://www.thingiverse.com/thing:6989378#google_vignette
 
+
+
+Seeedstudio forum  https://forum.seeedstudio.com/
+
+
+Seeedstudio Sensecraft  (Train the esp32s3 for machine learning AI)   https://sensecraft.seeed.cc/ai/home
