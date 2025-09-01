@@ -18,7 +18,7 @@
 #include <LSM6DS3.h>
 
 
-LSM6DS3 mymyIMU(I2C_MODE, 0x6A);
+LSM6DS3 myIMU(I2C_MODE, 0x6A);
 
 
 #define FREQUENCY_HZ        36     // how many samples per second 
