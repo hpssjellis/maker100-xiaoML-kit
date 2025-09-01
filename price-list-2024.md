@@ -3,7 +3,7 @@
 
 # NOT YET FULLY TESTED FOR THE 2025-2026 XIAOML Kit
 
-The interactive webpage of this equipment list is at  https://hpssjellis.github.io/maker100-xiaoML-kit/price-list.html
+The interactive webpage of this equipment list is at  https://hpssjellis.github.io/maker100-xiaoML-kit/price-list-xiaoml-kit.html
 
 
 For the course [maker100-eco](./) a cheaper version of my [Arduino PortentaH7](https://github.com/hpssjellis/maker100) course
