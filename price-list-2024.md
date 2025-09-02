@@ -322,3 +322,8 @@ Recently I improved the clip to  [seeed-sketches/xiao-big-clip-clip11b.stl](./se
 
 <img width="535" height="326" alt="image" src="https://github.com/user-attachments/assets/03d4d927-a35c-40cd-be88-ebe627d7b040" />
 
+
+
+<img width="388" height="279" alt="image" src="https://github.com/user-attachments/assets/8092caef-fa3a-494b-bd42-f2ca5937e883" />
+
+
