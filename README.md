@@ -5,6 +5,8 @@
 
 ## [XIAOML-Kit youtube playlist](https://www.youtube.com/watch?v=EvNXQ0sk5Ec&list=PL57Dnr1H_egtkBZJku20Bo2zaR8KUJGpa&index=1&pp=gAQBiAQB)
 
+## [2026 Price List](https://hpssjellis.github.io/maker100-xiaoML-kit/price-list-xiaoml-kit.html)
+
 # General
 
 The currciulum for this course is at [maker100-curriculum](https://github.com/hpssjellis/maker100-curriculum)
