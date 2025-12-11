@@ -5,7 +5,7 @@
 
 ## [XIAOML-Kit youtube playlist](https://www.youtube.com/watch?v=EvNXQ0sk5Ec&list=PL57Dnr1H_egtkBZJku20Bo2zaR8KUJGpa&index=1&pp=gAQBiAQB)
 
-## [2026 Price List](https://hpssjellis.github.io/maker100-xiaoML-kit/price-list-xiaoml-kit.html)
+## [2026 Price List](https://hpssjellis.github.io/maker100-xiaoML-kit/price-2026-03.html)
 
 # General
 
