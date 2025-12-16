@@ -5,9 +5,9 @@
 
 ## [XIAOML-Kit youtube playlist](https://www.youtube.com/watch?v=EvNXQ0sk5Ec&list=PL57Dnr1H_egtkBZJku20Bo2zaR8KUJGpa&index=1&pp=gAQBiAQB)
 
-## [2026 Price List](https://hpssjellis.github.io/maker100-xiaoML-kit/price-2026-03.html)
+## [2026 Price List](https://hpssjellis.github.io/maker100-xiaoML-kit/price-2026-03.html) <br>
 
-This course is all about the Seeedstudio [The-XIAOML-Kit.html <br>
+This course is all about the Seeedstudio<br> [The-XIAOML-Kit.html <br>
 <img width=400 src="https://github.com/user-attachments/assets/03d4d927-a35c-40cd-be88-ebe627d7b040"> <br>
 ](https://www.seeedstudio.com/The-XIAOML-Kit.html)
 
