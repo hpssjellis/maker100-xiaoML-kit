@@ -11,7 +11,8 @@ This course is all about the Seeedstudio<br> $38.90 USD [The-XIAOML-Kit.html whi
 <img width=400 src="https://github.com/user-attachments/assets/03d4d927-a35c-40cd-be88-ebe627d7b040"> <br>
 ](https://www.seeedstudio.com/The-XIAOML-Kit.html)
 
-For which the main Getting Started page is at [xiao_esp32s3_getting_started/](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) Any specialty code for this specific ML kit will be here on this page.
+For which the main Getting Started page is at [xiao_esp32s3_getting_started](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) <br>
+Any specialty code for this specific ML kit will be here on this page or at the Harvard [mlsysbook.ai]([https://mlsysbook.ai/](https://mlsysbook.ai/contents/labs/seeed/xiao_esp32s3/xiao_esp32s3.html)) free online book labs section.
 
 # General
 
