@@ -31,3 +31,6 @@ power  bank
 
 <img width="291" height="524" alt="image" src="https://github.com/user-attachments/assets/2cfba8c0-ce7d-4741-918a-cfddd3f56d47" />
 
+stepper motor driver
+
+<img width="355" height="276" alt="image" src="https://github.com/user-attachments/assets/1a0a8b6e-c35a-4958-b236-0500c7cf46cb" />
