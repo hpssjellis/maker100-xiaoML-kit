@@ -20,7 +20,7 @@ Views better using the README.md [here](README.md)
 
 This is not an online course, it is expected to be taught by a teacher or professor. Some students might be able to  do the course on their own, but many components of learning opportunities may be missed.
 
-Price list for the equipment I will be using in 2024 [price-list-2024.md](price-list-2024.md) (Many other devices could be used but the videos then will not be accurate for those devices)
+Price list for the equipment I will be using in 2026 [price-2026-00.html](price-2026-00.html) (Many other devices could be used but the videos then will not be accurate for those devices)
 
 
 
