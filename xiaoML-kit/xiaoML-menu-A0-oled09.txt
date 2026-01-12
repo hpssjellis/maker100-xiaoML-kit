@@ -1,0 +1,146 @@
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <U8g2lib.h>
+#include <Wire.h>
+
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
+
+
+// ======================================================
+// CONFIGURATION: EASY TO ADD/REMOVE ITEMS
+// ======================================================
+
+const int myTotalItems = 5;      // Change this if you add more items
+const int myThreshold = 1500;    // Touch sensitivity for A0
+const int myLongPressTime = 400; // How long to hold to "Select"
+const unsigned long myScreenTimeout = 300000; // 5 minutes
+
+// ======================================================
+// SYSTEM LOGIC: STUDENTS DON'T NEED TO EDIT BELOW HERE
+// ======================================================
+
+unsigned long myTouchStart = 0;
+unsigned long myLastActivityTime = 0; 
+bool myIsTouching = false;
+bool myLongPressTriggered = false; 
+int myMenuIndex = 1;
+bool myIsSelected = false;
+int myLastPicked = 0;
+
+// ======================================================
+// STUDENT SECTION: WRITE YOUR CODE IN THESE FUNCTIONS
+// ======================================================
+
+void myItem1Action() {
+  Serial.println("Action 1 Triggered: Taking a photo...");
+  // Example: You could put your camera capture code here
+}
+
+void myItem2Action() {
+  Serial.println("Action 2 Triggered: Blink LED...");
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
+  digitalWrite(LED_BUILTIN, HIGH);
+}
+
+void myItem3Action() {
+  Serial.println("Action 3 Triggered!");
+}
+
+void myItem4Action() {
+  Serial.println("Action 4 Triggered!");
+}
+
+void myItem5Action() {
+  Serial.println("Action 5 Triggered!");
+}
+
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(A0, INPUT_PULLDOWN); 
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); 
+  u8g2.begin();
+  myLastActivityTime = millis();
+}
+
+void loop() {
+  int myA0Val = analogRead(A0);
+  unsigned long myCurrentMillis = millis();
+
+  if (myA0Val > myThreshold) {
+    myLastActivityTime = myCurrentMillis;
+    if (!myIsTouching) {
+      myTouchStart = myCurrentMillis;
+      myIsTouching = true;
+      myLongPressTriggered = false; 
+    }
+
+    // Long Press Trigger (Select/Back)
+    if (!myLongPressTriggered && (myCurrentMillis - myTouchStart > myLongPressTime)) {
+      if (myIsSelected) {
+        myIsSelected = false;
+      } else {
+        myIsSelected = true;
+        myLastPicked = myMenuIndex;
+        
+        // Execute the correct function based on selection
+        if (myLastPicked == 1) myItem1Action();
+        else if (myLastPicked == 2) myItem2Action();
+        else if (myLastPicked == 3) myItem3Action();
+        else if (myLastPicked == 4) myItem4Action();
+        else if (myLastPicked == 5) myItem5Action();
+      }
+      myLongPressTriggered = true; 
+    }
+  } 
+  else {
+    if (myIsTouching) {
+      if (!myLongPressTriggered && (myCurrentMillis - myTouchStart < myLongPressTime)) {
+        if (!myIsSelected) {
+          myMenuIndex++;
+          if (myMenuIndex > myTotalItems) myMenuIndex = 1;
+          delay(50); // Short debounce
+        }
+      }
+      myIsTouching = false;
+    }
+  }
+
+  myDrawDisplay(myCurrentMillis);
+}
+
+void myDrawDisplay(unsigned long myCurrentMillis) {
+  u8g2.firstPage();
+  do {
+    if (myCurrentMillis - myLastActivityTime < myScreenTimeout) {
+      u8g2.setFont(u8g2_font_6x10_tf);
+      if (!myIsSelected) {
+        u8g2.drawStr(0, 10, "TAP:Next HOLD:Ok");
+        
+        // Scrolling window logic for 40px screen
+        int myStartItem = (myMenuIndex <= 3) ? 1 : myMenuIndex - 2;
+
+        for (int i = 0; i < 3; i++) {
+          int myCurrentDrawingItem = myStartItem + i;
+          if (myCurrentDrawingItem > myTotalItems) break;
+
+          int myYPos = 22 + (i * 9); 
+          if (myMenuIndex == myCurrentDrawingItem) u8g2.drawStr(0, myYPos, ">");
+          u8g2.setCursor(10, myYPos);
+          u8g2.print("Item ");
+          u8g2.print(myCurrentDrawingItem);
+        }
+      } else {
+        u8g2.drawStr(0, 15, "Running:");
+        u8g2.setFont(u8g2_font_ncenB14_tr);
+        u8g2.setCursor(10, 38);
+        u8g2.print("Item ");
+        u8g2.print(myLastPicked);
+      }
+    }
+  } while (u8g2.nextPage());
+}
