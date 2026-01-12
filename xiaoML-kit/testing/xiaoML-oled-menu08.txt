@@ -1,0 +1,107 @@
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <U8g2lib.h>
+#include <Wire.h>
+
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
+
+// Timing for single-button logic
+unsigned long myTouchStart = 0;
+unsigned long myLastActivityTime = 0; // Tracks last touch for screen timeout
+const unsigned long myScreenTimeout = 300000; // 5 minutes in milliseconds
+const int myLongPressTime = 200; 
+const int myShortInterval = 50;  
+bool myIsTouching = false;
+bool myLongPressTriggered = false; 
+
+int myMenuIndex = 1;
+bool myIsSelected = false;
+int myLastPicked = 0;
+const int myThreshold = 1500; 
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(A0, INPUT_PULLDOWN); 
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); 
+  u8g2.begin();
+  myLastActivityTime = millis(); // Initialize activity timer
+}
+
+void loop() {
+  int myA0Val = analogRead(A0);
+  unsigned long myCurrentMillis = millis();
+
+  if (myA0Val > myThreshold) {
+    myLastActivityTime = myCurrentMillis; // Reset timer on any touch
+    if (!myIsTouching) {
+      myTouchStart = myCurrentMillis;
+      myIsTouching = true;
+      myLongPressTriggered = false; 
+      digitalWrite(LED_BUILTIN, LOW); 
+    }
+
+    if (!myLongPressTriggered && (myCurrentMillis - myTouchStart > myLongPressTime)) {
+      if (myIsSelected) {
+        myIsSelected = false;
+      } else {
+        myIsSelected = true;
+        myLastPicked = myMenuIndex;
+      }
+      myLongPressTriggered = true; 
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(50);
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+  } 
+  else {
+    if (myIsTouching) {
+      unsigned long myDuration = myCurrentMillis - myTouchStart;
+      if (!myLongPressTriggered && myDuration < myLongPressTime) {
+        if (!myIsSelected) {
+          myMenuIndex++;
+          if (myMenuIndex > 5) myMenuIndex = 1;
+          delay(myShortInterval);
+        }
+      }
+      myIsTouching = false;
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+  }
+
+  // Draw Display with timeout check
+  u8g2.firstPage();
+  do {
+    // Only draw if the screen hasn't timed out
+    if (myCurrentMillis - myLastActivityTime < myScreenTimeout) {
+      u8g2.setFont(u8g2_font_6x10_tf);
+      if (!myIsSelected) {
+        int myStartItem = (myMenuIndex <= 3) ? 1 : myMenuIndex - 2;
+
+        u8g2.drawStr(0, 10, "TAP:Next HOLD:Ok");
+
+        for (int i = 0; i < 3; i++) {
+          int myCurrentDrawingItem = myStartItem + i;
+          if (myCurrentDrawingItem > 5) break;
+
+          int myYPos = 22 + (i * 9); 
+          
+          if (myMenuIndex == myCurrentDrawingItem) {
+            u8g2.drawStr(0, myYPos, ">");
+          }
+          u8g2.setCursor(10, myYPos);
+          u8g2.print("Item ");
+          u8g2.print(myCurrentDrawingItem);
+        }
+      } else {
+        u8g2.drawStr(0, 15, "You picked:");
+        u8g2.setFont(u8g2_font_ncenB14_tr);
+        u8g2.setCursor(25, 38);
+        u8g2.print(String(myLastPicked));
+      }
+    } 
+    // If timed out, the loop finishes without drawing anything, clearing the screen
+  } while (u8g2.nextPage());
+}
