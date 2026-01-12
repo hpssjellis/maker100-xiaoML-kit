@@ -2,35 +2,35 @@
 #include <Wire.h>
 
 // Initialize the OLED display for XIAO ML Kit
-[cite_start]U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, u8x8_pin_none); [cite: 1]
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE); 
 
 unsigned long myPreviousMillis = 0;
-[cite_start]const long myInterval = 150; [cite: 4]
+const long myInterval = 150; // Interval for updates (e.g., 150ms)
 
 int myMenuIndex = 1;         
 bool myIsSelected = false;   
 int myLastPicked = 0;        
 
 void setup() {
-  [cite_start]Serial.begin(115200); [cite: 5]
-  if (!Serial) { delay(5000); [cite_start]} [cite: 5]
+  Serial.begin(115200);
+  if (!Serial) { delay(5000); } // Wait 5 seconds for serial
   
-  [cite_start]pinMode(LED_BUILTIN, OUTPUT); [cite: 6]
-  [cite_start]u8g2.begin(); [cite: 6]
+  pinMode(LED_BUILTIN, OUTPUT);
+  u8g2.begin();
   
   Serial.println("Menu System Initialized - A0 to Select");
 }
 
 void loop() {
-  [cite_start]unsigned long myCurrentMillis = millis(); [cite: 7]
+  unsigned long myCurrentMillis = millis();
 
   // Read Touch Buttons
-  [cite_start]int myA0Value = analogRead(A0); [cite: 7]
+  int myA0Value = analogRead(A0);
   int myA10Value = analogRead(A10);
 
-  // Logic for cycling menu (Now A10)
+  // Logic for cycling menu (A10)
   if (myA10Value > 900) {
-    digitalWrite(LED_BUILTIN, LOW); [cite_start]// LED ON [cite: 15]
+    digitalWrite(LED_BUILTIN, LOW); // LED ON
     if (!myIsSelected) {
       myMenuIndex++;
       if (myMenuIndex > 3) myMenuIndex = 1;
@@ -41,23 +41,23 @@ void loop() {
       delay(200);
     }
   } 
-  // Logic for selecting item (Now A0)
+  // Logic for selecting item (A0)
   else if (myA0Value > 900) {
-    digitalWrite(LED_BUILTIN, LOW); [cite_start]// LED ON [cite: 15]
+    digitalWrite(LED_BUILTIN, LOW); // LED ON
     myIsSelected = true;
     myLastPicked = myMenuIndex;
     Serial.println("Selected Item: " + String(myLastPicked));
     delay(200);
   } 
   else {
-    digitalWrite(LED_BUILTIN, HIGH); [cite_start]// LED OFF [cite: 15]
+    digitalWrite(LED_BUILTIN, HIGH); // LED OFF
   }
 
-  [cite_start]// Display Update Logic [cite: 8]
-  [cite_start]if (myCurrentMillis - myPreviousMillis >= myInterval) { [cite: 8]
-    [cite_start]myPreviousMillis = myCurrentMillis; [cite: 8]
+  // Display Update Logic using the drawing sequence loop
+  if (myCurrentMillis - myPreviousMillis >= myInterval) {
+    myPreviousMillis = myCurrentMillis;
 
-    [cite_start]u8g2.firstPage(); [cite: 9]
+    u8g2.firstPage();
     do {
       u8g2.setFont(u8g2_font_6x10_tf); 
       
@@ -76,12 +76,12 @@ void loop() {
         
       } else {
         // Selection Screen
-        [cite_start]u8g2.setFont(u8g2_font_ncenB08_tr); [cite: 9]
+        u8g2.setFont(u8g2_font_ncenB08_tr);
         u8g2.drawStr(0, 15, "You picked:");
-        [cite_start]u8g2.setFont(u8g2_font_ncenB14_tr); [cite: 10]
-        [cite_start]u8g2.setCursor(25, 38); [cite: 10]
-        [cite_start]u8g2.print(String(myLastPicked)); [cite: 10]
+        u8g2.setFont(u8g2_font_ncenB14_tr);
+        u8g2.setCursor(25, 38);
+        u8g2.print(String(myLastPicked));
       }
-    [cite_start]} while (u8g2.nextPage()); [cite: 11]
+    } while (u8g2.nextPage());
   }
 }
