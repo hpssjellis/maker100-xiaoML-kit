@@ -5,83 +5,112 @@
 U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE); 
 
 unsigned long myPreviousMillis = 0;
-const long myInterval = 150; // Interval for updates (e.g., 150ms)
+const long myInterval = 100; 
 
 int myMenuIndex = 1;         
 bool myIsSelected = false;   
 int myLastPicked = 0;        
 
+const int myThreshold = 2500; 
+
 void setup() {
   Serial.begin(115200);
-  if (!Serial) { delay(5000); } // Wait 5 seconds for serial
   
+  // A0 and A1 are stable ADC1 pins
+  pinMode(A0, INPUT_PULLDOWN); 
+  pinMode(A1, INPUT_PULLDOWN);
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); 
+
   u8g2.begin();
-  
-  Serial.println("Menu System Initialized - A0 to Select");
+  Serial.println("System Ready: A1=Cycle/Back, A0=Select");
 }
 
 void loop() {
   unsigned long myCurrentMillis = millis();
 
-  // Read Touch Buttons
-  int myA0Value = analogRead(A0);
-  int myA10Value = analogRead(A10);
+  // --- READ INPUTS ---
+  int myA0Val = analogRead(A0);
+  int myA1Val = analogRead(A1);
 
-  // Logic for cycling menu (A10)
-  if (myA10Value > 900) {
-    digitalWrite(LED_BUILTIN, LOW); // LED ON
-    if (!myIsSelected) {
-      myMenuIndex++;
-      if (myMenuIndex > 3) myMenuIndex = 1;
-      Serial.println("Navigating to Item: " + String(myMenuIndex));
-      delay(200); // Simple debounce
-    } else {
-      myIsSelected = false; // Return to menu if already showing a selection
-      delay(200);
+  // --- BUTTON LOGIC ---
+  
+  // 1. BACK LOGIC (A1 returns to menu if a choice is showing)
+  if (myIsSelected) {
+    if (myA1Val > myThreshold) {
+      digitalWrite(LED_BUILTIN, LOW);
+      myIsSelected = false; 
+      Serial.println("Back to Menu");
+      
+      // Wait for release to prevent immediate menu cycling
+      while(analogRead(A1) > myThreshold); 
+      delay(50); // 50ms delay as requested
+      digitalWrite(LED_BUILTIN, HIGH);
     }
   } 
-  // Logic for selecting item (A0)
-  else if (myA0Value > 900) {
-    digitalWrite(LED_BUILTIN, LOW); // LED ON
-    myIsSelected = true;
-    myLastPicked = myMenuIndex;
-    Serial.println("Selected Item: " + String(myLastPicked));
-    delay(200);
-  } 
+  
+  // 2. MENU LOGIC (Navigation and Selection)
   else {
-    digitalWrite(LED_BUILTIN, HIGH); // LED OFF
+    // Cycle Menu (A1)
+    if (myA1Val > myThreshold) {
+      digitalWrite(LED_BUILTIN, LOW);
+      myMenuIndex++;
+      if (myMenuIndex > 3) myMenuIndex = 1;
+      Serial.println("Navigated to: " + String(myMenuIndex));
+      
+      while(analogRead(A1) > myThreshold); 
+      delay(50); // 50ms delay
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+
+    // Select Item (A0)
+    if (myA0Val > myThreshold) {
+      digitalWrite(LED_BUILTIN, LOW);
+      myIsSelected = true;
+      myLastPicked = myMenuIndex;
+      Serial.println("Picked: " + String(myLastPicked));
+      
+      while(analogRead(A0) > myThreshold);
+      
+      // Refresh screen immediately to show the pick
+      myDrawDisplay(); 
+      
+      delay(50); // 50ms delay after choice
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
   }
 
-  // Display Update Logic using the drawing sequence loop
+  // --- REGULAR REFRESH ---
   if (myCurrentMillis - myPreviousMillis >= myInterval) {
     myPreviousMillis = myCurrentMillis;
-
-    u8g2.firstPage();
-    do {
-      u8g2.setFont(u8g2_font_6x10_tf); 
-      
-      if (!myIsSelected) {
-        u8g2.drawStr(0, 10, "--- MENU ---");
-        
-        // Render menu list with selection indicator
-        if (myMenuIndex == 1) u8g2.drawStr(0, 22, "> Item 1");
-        else u8g2.drawStr(10, 22, "Item 1");
-        
-        if (myMenuIndex == 2) u8g2.drawStr(0, 31, "> Item 2");
-        else u8g2.drawStr(10, 31, "Item 2");
-        
-        if (myMenuIndex == 3) u8g2.drawStr(0, 40, "> Item 3");
-        else u8g2.drawStr(10, 40, "Item 3");
-        
-      } else {
-        // Selection Screen
-        u8g2.setFont(u8g2_font_ncenB08_tr);
-        u8g2.drawStr(0, 15, "You picked:");
-        u8g2.setFont(u8g2_font_ncenB14_tr);
-        u8g2.setCursor(25, 38);
-        u8g2.print(String(myLastPicked));
-      }
-    } while (u8g2.nextPage());
+    myDrawDisplay();
   }
+}
+
+// Function to handle all OLED drawing
+void myDrawDisplay() {
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_6x10_tf); 
+    if (!myIsSelected) {
+      u8g2.drawStr(0, 10, "--- MENU ---");
+      
+      // Cursor logic
+      if (myMenuIndex == 1) u8g2.drawStr(0, 22, "> Item 1");
+      else u8g2.drawStr(10, 22, "Item 1");
+      
+      if (myMenuIndex == 2) u8g2.drawStr(0, 31, "> Item 2");
+      else u8g2.drawStr(10, 31, "Item 2");
+      
+      if (myMenuIndex == 3) u8g2.drawStr(0, 40, "> Item 3");
+      else u8g2.drawStr(10, 40, "Item 3");
+      
+    } else {
+      // Selection Result
+      u8g2.drawStr(0, 15, "You picked:");
+      u8g2.setFont(u8g2_font_ncenB14_tr);
+      u8g2.setCursor(25, 38);
+      u8g2.print(String(myLastPicked));
+    }
+  } while (u8g2.nextPage());
 }
