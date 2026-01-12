@@ -10,7 +10,7 @@ U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
 // Timing for single-button logic
 unsigned long myTouchStart = 0;
 const int myLongPressTime = 200; // 200 ms is a "Select"
-const int myLongPressTime = 50;  // 50 ms is a next menu item"
+const int myShortInterval = 50;  // 50 ms is a next menu item"
 bool myIsTouching = false;
 
 int myMenuIndex = 1;
@@ -53,7 +53,7 @@ void loop() {
         if (!myIsSelected) {
           myMenuIndex++;
           if (myMenuIndex > 3) myMenuIndex = 1;
-          delay(50);
+          delay(myShortInterval);
         }
       }
       myIsTouching = false;
@@ -68,8 +68,8 @@ void loop() {
     if (!myIsSelected) {
       u8g2.drawStr(0, 10, "-TAP:Next HOLD:Ok-");
       u8g2.drawStr(myMenuIndex == 1 ? 0 : 10, 22, (myMenuIndex == 1 ? "> Item 1" : "Item 1"));
-      u8g2.drawStr(myMenuIndex == 2 ? 0 : 31, 31, (myMenuIndex == 2 ? "> Item 2" : "Item 2"));
-      u8g2.drawStr(myMenuIndex == 3 ? 0 : 40, 40, (myMenuIndex == 3 ? "> Item 3" : "Item 3"));
+      u8g2.drawStr(myMenuIndex == 2 ? 0 : 10, 31, (myMenuIndex == 2 ? "> Item 2" : "Item 2"));
+      u8g2.drawStr(myMenuIndex == 3 ? 0 : 10, 40, (myMenuIndex == 3 ? "> Item 3" : "Item 3"));
     } else {
       u8g2.drawStr(0, 15, "You picked:");
       u8g2.setCursor(25, 38);
