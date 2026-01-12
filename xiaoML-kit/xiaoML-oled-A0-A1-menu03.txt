@@ -1,0 +1,112 @@
+#include <U8g2lib.h>
+#include <Wire.h>
+
+// Initialize the OLED display for XIAO ML Kit
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE); 
+
+unsigned long myPreviousMillis = 0;
+const long myInterval = 100; 
+
+int myMenuIndex = 1;         
+bool myIsSelected = false;   
+int myLastPicked = 0;        
+
+const int myThreshold = 2500; 
+const int myCycleDelay = 200; // Speed of cycling when button is held down
+
+void setup() {
+  Serial.begin(115200);
+  
+  // A0 and A1 are stable ADC1 pins
+  pinMode(A0, INPUT_PULLDOWN); 
+  pinMode(A1, INPUT_PULLDOWN);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); 
+
+  u8g2.begin();
+  Serial.println("Hold-to-Cycle Enabled: A1=Cycle/Back, A0=Select");
+}
+
+void loop() {
+  unsigned long myCurrentMillis = millis();
+
+  // --- READ INPUTS ---
+  int myA0Val = analogRead(A0);
+  int myA1Val = analogRead(A1);
+
+  // --- BUTTON LOGIC ---
+  
+  // 1. BACK LOGIC (A1 returns to menu)
+  if (myIsSelected) {
+    if (myA1Val > myThreshold) {
+      digitalWrite(LED_BUILTIN, LOW);
+      myIsSelected = false; 
+      Serial.println("Back to Menu");
+      
+      delay(myCycleDelay); // Short delay to prevent accidental double-back
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+  } 
+  
+  // 2. MENU LOGIC (Navigation and Selection)
+  else {
+    // Cycle Menu (A1) - Holding this down will now keep cycling
+    if (myA1Val > myThreshold) {
+      digitalWrite(LED_BUILTIN, LOW);
+      myMenuIndex++;
+      if (myMenuIndex > 3) myMenuIndex = 1;
+      Serial.println("Navigating to: " + String(myMenuIndex));
+      
+      delay(myCycleDelay); // This controls the "scroll speed"
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+
+    // Select Item (A0)
+    if (myA0Val > myThreshold) {
+      digitalWrite(LED_BUILTIN, LOW);
+      myIsSelected = true;
+      myLastPicked = myMenuIndex;
+      Serial.println("Picked: " + String(myLastPicked));
+      
+      // Update screen immediately
+      myDrawDisplay(); 
+      
+      delay(500); // Half-second pause so you can see your selection
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+  }
+
+  // --- REGULAR REFRESH ---
+  if (myCurrentMillis - myPreviousMillis >= myInterval) {
+    myPreviousMillis = myCurrentMillis;
+    myDrawDisplay();
+  }
+}
+
+// Function to handle all OLED drawing
+void myDrawDisplay() {
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_6x10_tf); 
+    if (!myIsSelected) {
+      u8g2.drawStr(0, 10, "--- MENU ---");
+      
+      // Cursor logic
+      if (myMenuIndex == 1) u8g2.drawStr(0, 22, "> Item 1");
+      else u8g2.drawStr(10, 22, "Item 1");
+      
+      if (myMenuIndex == 2) u8g2.drawStr(0, 31, "> Item 2");
+      else u8g2.drawStr(10, 31, "Item 2");
+      
+      if (myMenuIndex == 3) u8g2.drawStr(0, 40, "> Item 3");
+      else u8g2.drawStr(10, 40, "Item 3");
+      
+    } else {
+      // Selection Result
+      u8g2.drawStr(0, 15, "You picked:");
+      u8g2.setFont(u8g2_font_ncenB14_tr);
+      u8g2.setCursor(25, 38);
+      u8g2.print(String(myLastPicked));
+    }
+  } while (u8g2.nextPage());
+}
