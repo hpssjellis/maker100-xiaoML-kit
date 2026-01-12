@@ -1,0 +1,96 @@
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <U8g2lib.h>
+#include <Wire.h>
+
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
+
+// Timing for single-button logic
+unsigned long myTouchStart = 0;
+const int myLongPressTime = 400; // 200 ms is a "Select"
+const int myShortInterval = 50;  // 50 ms delay for menu cycle
+bool myIsTouching = false;
+bool myLongPressTriggered = false; // Prevents repeat selection while holding
+
+int myMenuIndex = 1;
+bool myIsSelected = false;
+int myLastPicked = 0;
+const int myThreshold = 1500; // Stable threshold for A0
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(A0, INPUT_PULLDOWN); // Best pin for XIAO S3 Sense touch [cite: 5]
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); 
+  u8g2.begin();
+}
+
+void loop() {
+  int myA0Val = analogRead(A0);
+  unsigned long myCurrentMillis = millis();
+
+  if (myA0Val > myThreshold) {
+    if (!myIsTouching) {
+      myTouchStart = myCurrentMillis;
+      myIsTouching = true;
+      myLongPressTriggered = false; // Reset for new touch
+      digitalWrite(LED_BUILTIN, LOW); 
+    }
+
+    // --- NEW LONG PRESS LOGIC: TRIGGER WITHOUT RELEASE ---
+    if (!myLongPressTriggered && (myCurrentMillis - myTouchStart > myLongPressTime)) {
+      if (myIsSelected) {
+        myIsSelected = false;
+      } else {
+        myIsSelected = true;
+        myLastPicked = myMenuIndex;
+      }
+      myLongPressTriggered = true; // Lock the action until release
+      // Brief flicker of LED to show it "took" the command
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(50);
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+  } 
+  else {
+    // RELEASE LOGIC: Only handles the Short Press (Tap)
+    if (myIsTouching) {
+      unsigned long myDuration = myCurrentMillis - myTouchStart;
+      
+      // If we released BEFORE the long press time, treat it as a tap
+      if (!myLongPressTriggered && myDuration < myLongPressTime) {
+        if (!myIsSelected) {
+          myMenuIndex++;
+          if (myMenuIndex > 3) myMenuIndex = 1;
+          delay(myShortInterval);
+        }
+      }
+      myIsTouching = false;
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+  }
+
+  // Draw Display with stationary list items [cite: 9, 10]
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_6x10_tf);
+    if (!myIsSelected) {
+      u8g2.drawStr(0, 10, "-TAP:Next HOLD:Ok-");
+      
+      if (myMenuIndex == 1) u8g2.drawStr(0, 22, ">");
+      u8g2.drawStr(10, 22, "Item 1");
+      
+      if (myMenuIndex == 2) u8g2.drawStr(0, 31, ">");
+      u8g2.drawStr(10, 31, "Item 2");
+      
+      if (myMenuIndex == 3) u8g2.drawStr(0, 40, ">");
+      u8g2.drawStr(10, 40, "Item 3");
+    } else {
+      u8g2.drawStr(0, 15, "You picked:");
+      u8g2.setCursor(25, 38);
+      u8g2.print(String(myLastPicked)); // [cite: 11]
+    }
+  } while (u8g2.nextPage());
+}
