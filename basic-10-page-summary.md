@@ -122,4 +122,3 @@ To pass Maker100, a student must demonstrate:
 * [ ] Do you know why you shouldn't power a large DC motor directly from the XIAO 3.3V pin?
 * [ ] Can you write a `loop()` that blinks an LED based on a sensor threshold?
 
-**Would you like me to expand on any specific assignment (like the a29B FOMO-OLED integration) for a more detailed technical breakdown?**
