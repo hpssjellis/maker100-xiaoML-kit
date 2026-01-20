@@ -1,0 +1,46 @@
+#define TOUCH_PIN D0  // Pin D0 (GPIO1)
+#define LED_PIN LED_BUILTIN // Onboard LED
+
+int threshold = 30; // Set touch sensitivity threshold
+bool touchDetected = false;
+unsigned long myStartTime;
+unsigned long myLongPressTime = 300; 
+unsigned long mySmallElectricalSpikes = 40; 
+unsigned long myDuration;;
+
+// Interrupt callback
+void gotTouch() {
+  if (! touchDetected){
+      myStartTime = millis();
+      touchDetected = true;
+  }
+}
+
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH); // Turn off LED initially
+
+  // Attach interrupt to the touch pin
+  touchAttachInterrupt(TOUCH_PIN, gotTouch, threshold);
+}
+
+void loop() {
+  if (touchDetected) {
+    touchDetected = false;
+
+    digitalWrite(LED_PIN, LOW); // Turn on LED
+    Serial.print(TOUCH_PIN);
+    delay(myLongPressTime); // Debounce
+    digitalWrite(LED_PIN, HIGH); // Turn off LED
+    myDuration = millis() - myStartTime;
+        // Decide what happened
+    if (myDuration >= myLongPressTime) {
+      Serial.println(", LONG PRESS");  
+    } else if (myDuration > mySmallElectricalSpikes) { // Filter out tiny electrical spikes
+      Serial.println(", TAP");
+    }
+     touchDetected = false;
+  }
+}
