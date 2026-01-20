@@ -1,0 +1,1 @@
+Maker100: 50 Essential Maker & TinyML Skills#CategorySkill Description1SafetyIdentifying polarity on LEDs and Capacitors to prevent component "magic smoke."2DiagrammingDrawing a complete circuit schematic before touching any hardware.
