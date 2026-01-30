@@ -176,6 +176,46 @@ Note: soldered headers not needed, but a USB-C cable and computer or laptop to r
 
 
 
+.
+
+
+
+
+.
+
+
+
+
+
+
+.
+
+
+
+
+.
+
+
+
+
+
+
+.
+
+
+
+
+
+
+.
+
+
+
+
+
+
+.
+
 
 <br><br><br>
 
