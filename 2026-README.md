@@ -93,23 +93,11 @@ The [https://www.seeedstudio.com/The-XIAOML-Kit.html](https://www.seeedstudio.co
 (Esp32S3 Sense with camera microphone SD Card module and IMU OLED module and cables, sd Card reader and micro sd card. You can start learning immediately)
 
 
-So
-
-
-3 x ($113.90 + $69) =  3 x $182.90   =   548.70        >      15 x $13.99 + 15 x $14.50 =     $209.85  + 217.50  =  $427.35
-
-3 x PortentaH7 + vision shield = $548.70 USD which is more than 15 x (XIAO-esp32s and RAK2270 ) = $427.35 USD 
-
-Note: the rak2270 will need a few ~$10 rigs to communicate over a serial monitor
-
-So for the price of 3 PortentaH7 with LoRa Vision shields I can get a full class set of 15 MCU's of both types (XIAO-sense and RAK) that span my complete curriculum
-
-Probably a good idea to spend a bit of money purchasing the clips and RAKDAP1's for connecting the RAK2270 Sticker Trackers to serial ports. Although soldering the wires to the board pads and using a TTL usb-to serial cable is another option.
 
 
 <hr>
 
-Very hard to compare the Xiao/Rak class set of $427.35 USD with a class set of PortentaH7's ($15 x $182.90) = $2743.50 USD
+Very hard to compare the XIAO class set of 15 x $38.90 USD = $583.5 USD with a class set of PortentaH7's ($15 x $182.90) = $2743.50 USD
 
 </details>
 
@@ -130,7 +118,6 @@ Very hard to compare the Xiao/Rak class set of $427.35 USD with a class set of P
   
 <li>SeeedStudio Link to the XiaoEsp32s3-Sense store https://www.seeedstudio.com/XIAO-ESP32S3-Sense-p-5639.html     Note: It needs headers soldered to do many of the assignments. </li>
 
-<li>RakWireless ~$15 USD RAK2270 Sticker Tracker   store is at  https://store.rakwireless.com/products/rak2270-rak-sticker-tracker?variant=43046272303302) </li>
 
 
 <li>The original XiaoEsp32s3 and RAK2270 research is at https://github.com/hpssjellis/mcu-stable-edu-launch</li>
@@ -164,8 +151,8 @@ Very hard to compare the Xiao/Rak class set of $427.35 USD with a class set of P
 
 
 
-For Arduino IDE Boardsfor both the Xioa-Esp32s3 and XIAO ML Kit Search for ESP and look for XIAO ESP32S3
-Note: No Preferences needed the Expressiff board is properly listed. Do not install the Arduino ESP32 board just the official Espressiff board.
+For Arduino IDE Boards for both the Xioa-Esp32s3 and XIAO ML Kit Search for ESP32 and install the board, then look for XIAO ESP32S3 specific board
+Note: No Preferences needed the Espressif board is properly listed. Do not install the Arduino ESP32 board just the official Espressif board.
 
 
 Video showing how to setup the XiaoEsp32s3. There are also lots of other instructions online to help with setup.
@@ -179,7 +166,7 @@ Video showing how to setup the XiaoEsp32s3. There are also lots of other instruc
 Note: soldered headers not needed, but a USB-C cable and computer or laptop to run the code is neede
 | Topic | Example Code| Video | Instructions and Prompt|
 |:---|:---|:---|:---|
-| <a name="a01-ml14" href="README.md#a01">`a01`</a>  Follow the Sensecraft Vision example  |  [wiki.seeedstudio.com/sscma/](https://wiki.seeedstudio.com/sscma/) direct webpage [https://sensecraft.seeed.cc/ai/#/home](https://sensecraft.seeed.cc/ai/#/home)  |   |    <details closed> <summary>More Instructions</summary> ... </details> <details closed> <summary>ChatGPT Prompt</summary> ... </details>  |
+| <a name="a01-ml16" href="README.md#a01">`a01`</a>  Platformio and Arduino on-devise-ml with 82gl oled include  |  []()  |   |    <details closed> <summary>More Instructions</summary> ... </details> <details closed> <summary>ChatGPT Prompt</summary> ... </details>  |
 | <a name="a01" href="README.md#a01">`a01`</a>  Follow the Sensecraft Vision example  |  [wiki.seeedstudio.com/sscma/](https://wiki.seeedstudio.com/sscma/) direct webpage [https://sensecraft.seeed.cc/ai/#/home](https://sensecraft.seeed.cc/ai/#/home)  |   |    <details closed> <summary>More Instructions</summary> ... </details> <details closed> <summary>ChatGPT Prompt</summary> ... </details>  |
 
 
