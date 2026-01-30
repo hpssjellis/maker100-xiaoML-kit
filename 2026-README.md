@@ -20,7 +20,7 @@ The currciulum for this course is at [maker100-curriculum](https://github.com/hp
 
 The old version of this course  Seeedstudio [maker100-eco](https://github.com/hpssjellis/maker100-eco)
 
-An economical version of my successful Arduino PortentaH7 [Maker100](https://github.com/hpssjellis/maker100) Robotics, IoT and TinyML Machine Learning in-person course this time using less expensive hardware such as the [$13.99 USD Seeedstudio XiaoEsp32s3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) for the course basics and some [EdgeImpulse.com](https://edgeimpulse.com/) cell phone assisted machine learning and the [$14.50 USD RakWireless RAK2270StickerTracker](https://store.rakwireless.com/products/rak2270-rak-sticker-tracker?variant=43046272303302) for the LoRa/LoRaWan and Motion (x,y,z) machine learning using [tinyMLjs](https://hpssjellis.github.io/tinyMLjs/public/index.html) a static webpage webSerial Machine Learning method I have made.
+An economical version of my successful Arduino PortentaH7 [Maker100](https://github.com/hpssjellis/maker100) Robotics, IoT and TinyML Machine Learning in-person course this time using less expensive hardware such as the [$13.99 USD Seeedstudio XiaoEsp32s3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) for the course basics and some [EdgeImpulse.com](https://edgeimpulse.com/) cell phone assisted machine learning. 
 
 
 Views better using the README.md [here](README.md)
@@ -51,18 +51,21 @@ Price list for the equipment I will be using in 2026 [price-2026-00.html](price-
   <li> Students work on term assignments in partners and make very short videos that teach what they did for each assignment.</li>
   <li>I expect all students to try to improve and change each assignment. "Until you change computer code do not expect to understand it"</li>
   <li>MAKE EACH STUDENT DRAW THEIR OWN CIRCUIT DIAGRAM FOR EACH ASSIGNMENT. For easy assignments I make it hard for the students to know how to connect the wires. I only give students clear diagrams for the difficult connections. Let students think. These are not fully made recipes!</li>
+     <li>For 2026 I will be using wokwi for diagrams. Students can look at the diagram but must still make their own drawing that they understand. (All conections labelled and perhaps include wire color)</li>
   <li>I expect all students to draw circuit diagrams before connecting wires and have someone check the diagram and then to connect the wires and have someone also check before stuidents connect power to the device.</li>
-  <li>I teach one assignment per class but expect several students to work ahead and solve missing parts of the prossess in small groups, also some students will fall behind, this allows us to have fewer sensors and actuators since the class rarely uses them at the same time. I can often get away with 4 sensors for an entire 30 person class</li>
+  <li>I teach one assignment per class but expect several students to work ahead and solve missing parts of the prossess in small groups, also some students will fall behind, this allows us to have fewer sensors and actuators since the class rarely uses them at the same time. I can often get away with 4 sensors for an entire 30 person class</li></li>
+  <li>All assignments should be complete individually so that each student does the entire pipeline, students may work in partners but take turns at the computer</li>  
+   <li>Students should wipe the code after they have made there video so that the next student needs to program it from scratch</li>
   <li>This Github of very fast instructions allow more dedicated students to work ahead and helps student who missed a class or are good reminders for students who need extra time. THE VIDEOS ARE NOT EXPECTED TO BE AN ONLINE COURSE. THIS IS AN IN-PERSON COURSE! Educators can add important information and problem solve many issues that are very difficult to solve when at home by yourself in a fast paced changing technological landscape.</li>
   <li>The faster students finish the course the more time they have for their final projects</li> 
   <li>To pass the course everyone must complete at least one final project using a sensor connected to an actuator of their choice</li>
   <li> Students plan 2 individual main projects and possibly one group project. Each main project must include at least one sensor with one actuator</li>
   <li> Many student's will only complete one main project and that is fine. "Robotics projects are very difficult to finish" </li>
-  <li> Many final projects will need structures built to support them. Any safe material is fine, we typically 3D print the sturctures although carboard and or wood is often used </li>
+  <li> Many final projects will need structures built to support them. Any safe material is fine, we typically 3D print the sturctures although cardboard and or wood is often used </li>
   <li> Final projects typically do not involve high voltage, water or drones for the obvious safety reasons.  </li>
-  <li> I tell students that if every term assignment is complete the indivdual final project is there full mark if that helps their grade</li>
+  <li> I tell students that if every term assignment is complete, the indivdual final project is there full mark if that helps their grade</li>
   <li>Teacher's may decide to make several of the advanced assignments optional or even set for bonus marks</li>
-  <li>Use an LLM such as ChatGPT to help understand what the code does or how to improve the assignment</li>
+  <li>Use an LLM such as: (What I do with the free versions) [Claude.io](https://claude.ai/new) for all help, [Gemini](https://gemini.google.com/app) for all research, [chatGPT](https://chatgpt.com/) for advanced critique, [CoPilot](https://www.copilot.com/) for creative solutions to help understand what the code does or how to improve the assignment</li>
 </ol>
 
 </details>
