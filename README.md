@@ -1,6 +1,8 @@
 ## Maker100-xiaoML-kit   (Economy) Robotics, IoT and TinyML Machine Learning course is almost ready to be used!
 
-## DRAFT MODE STUDENTS AND THE TEACHER WILL IMPROVE THIS TOGETHER IN FEB-JUNE 2026
+## THE ACTUAL 2026 FILE IS AT [2026-README.md](2026-README.md) 
+
+while it is being developed. This page is the 2025 version
 
 
 ## [XIAOML-Kit youtube playlist](https://www.youtube.com/watch?v=EvNXQ0sk5Ec&list=PL57Dnr1H_egtkBZJku20Bo2zaR8KUJGpa&index=1&pp=gAQBiAQB)
