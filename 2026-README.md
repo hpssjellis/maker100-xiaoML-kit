@@ -74,9 +74,8 @@ Price list for the equipment I will be using in 2026 [price-2026-00.html](price-
 <hr />
 
 <details closed> <summary>Why Maker100-xiaoML-kit?</summary>
-The arduino PortentaH7 with LoRa Vision Shield is an encredible TinyML device that can do amazing things and has been a joy to teach, but I am part of an international group trying to bring tinyML to the students in developing countries called [tinyML4D](https://tinyml.seas.harvard.edu/team) and the Arduino PortentaH7 is just too expensive for student explorations. 
+The arduino PortentaH7 with LoRa Vision Shield is an encredible TinyML device that can do amazing things and has been a joy to teach, but I am part of an international group trying to bring tinyML to the students in developing countries called [tinyML4D](https://tinyml.seas.harvard.edu/team) and the Arduino PortentaH7 is just too expensive for student explorations. Also when you fry on of these boards it is very upsetting.
 
-Since schools spend a large amount of their budget on Computers, Laptops, iPads and the technology to integrate them safely with the internet I feel that any method technology teachers can do to reduce costs is good for the entire educational system.
 </details>
 
 <br>
@@ -88,7 +87,10 @@ The [Arduino PortentaH7](https://store-usa.arduino.cc/products/portenta-h7) cost
 
 The [XiaoEsp32s3-sense](https://www.seeedstudio.com/XIAO-ESP32S3-Sense-p-5639.html)  costs $13.99
 
-and the [RAK2270 Developer](https://store.rakwireless.com/products/rak2270-rak-sticker-tracker?variant=43046273286342) costs $14.50 USD
+The [https://www.seeedstudio.com/The-XIAOML-Kit.html](https://www.seeedstudio.com/The-XIAOML-Kit.html) is $22 USD without cables, and micro sd card
+
+The [https://www.seeedstudio.com/The-XIAOML-Kit.html](https://www.seeedstudio.com/The-XIAOML-Kit.html) is $38.90 with everything 
+(Esp32S3 Sense with camera microphone SD Card module and IMU OLED module and cables, sd Card reader and micro sd card. You can start learning immediately)
 
 
 So
