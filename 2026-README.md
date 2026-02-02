@@ -87,6 +87,8 @@ Video showing how to setup the XiaoEsp32s3. There are also lots of other instruc
 
 # Assignments done in order of our class in 2026, not the curriculum order.
 
+Note: Checked Hand drawn diagrams expected before any wiring is started, Then checked again before power connected.
+
 -------------------------------------------------------------------------------------------------------------
 
 
