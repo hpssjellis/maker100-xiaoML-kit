@@ -452,7 +452,7 @@ Give me the steps to make a vision classification model on edgeimpulse.com with 
 #define PCLK_GPIO_NUM     13
 ```
 
-**ChatGPT Prompt:** ... *(placeholder from original)*
+
 
 ---
 
@@ -462,26 +462,4 @@ The website is from my page, if you want to edit it, just download the entire Ma
 
 ---
 
-## Appendix I: Final Project 1 - One sensor with one actuator
 
-**More Instructions:** ... *(placeholder from original)*
-
-**ChatGPT Prompt:** ... *(placeholder from original)*
-
----
-
-## Appendix J: Final Project 2 - Complex sensor, ML, actuator
-
-**More Instructions:** ... *(placeholder from original)*
-
-**ChatGPT Prompt:** ... *(placeholder from original)*
-
----
-
-## Appendix K: Final Project 3 - Group project, proof of concept
-
-**More Instructions:** ... *(placeholder from original)*
-
-**ChatGPT Prompt:** ... *(placeholder from original)*
-
----
