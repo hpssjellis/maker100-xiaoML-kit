@@ -120,7 +120,37 @@ Also a cell phone or webCam to video the assignment when finished.
 |  <a name="a12-webAI01-11" href="README.md#a12-webAI01-11">`a12-webAI01-11`</a> All Code WebAI Assignments        |   Prove you can get most of these working  the location with links is on the [Maker100-curriculum-webAI](https://github.com/hpssjellis/maker100-curriculum/blob/main/README.md#webai-edgeai) page         | Copy the examples and get the webpages working  |  One of the few assignments that might need it's own folder, but the video gets copied into the main folder. Slightly change each program. 10 programs one grade. We have already done the hand pose   |
 
 
+.
 
+
+
+.
+
+
+
+.
+
+
+
+.
+
+
+
+
+
+.
+
+
+
+
+
+.
+
+
+
+
+
+.
 
 
 <br><br><br>
@@ -213,42 +243,16 @@ It is a bit to heavy to do all of these one after another.
 
 
  
-using one RAK2270 as the P2P receiver
+.
+
+
+
+.
 
 
 
 
-
-
-# One Day Conference using the RAK2270StickerTracker
-Note: Each person or group will need the [RAK2270 Sticker Tracker Developer kit](https://store.rakwireless.com/products/rak2270-rak-sticker-tracker?variant=43046273220806) with serail rig called the clip
-
-Needs testing, might need a Linux computer to run the ML programs.
-
-| Topic | Example Code| Video | Instructions and Prompt |
-|:---|:---|:---|:---|
-|  <a name="a55" href="README.md#a55">`a55-rak-hello`</a>  RAK Read values and Hello Serial Monitor  |  [rack-send08-receive.ino](rak-sketches/rack-send08-receive.ino) <br>also for AT commands  look at [rak-at-commands.md](rak-sketches/rak-at-commands.md)   |     <img src="https://img.youtube.com/vi/aFy9q_klaOc/hqdefault.jpg" width=600 />       <img src="https://img.youtube.com/vi/Eye5zlfl3I8/hqdefault.jpg" width=600 />    <img src="https://img.youtube.com/vi/lDYUIPRGT6k/hqdefault.jpg" width=600 />    | Get used to uploading code by serial monitor "AT+BOOT". To reset code typoe "AT+RUN" Use the RAK rig and connect to the Arduino serial monitor to read all the present set LoRa and LoRaWan variables   <img src="https://github.com/hpssjellis/Maker100-xiaoML-kit/assets/5605614/c4991ceb-7a8f-47d3-89d7-a3d7b361a824" width = "600%" />  |
-|   <a name="a56" href="README.md#a56">`a56-rak-LoRaWan-setup`</a>  (Optional) RAK2270StickerTracker [trackpac.io](https://trackpac.eu.auth0.com/u/login) setup   |      |     |  If you have the original RAK2270 Sticker Tracker with TrackPac.io then set it up and monitor your deivce   |
-|  <a name="a57" href="README.md#a57">`a57rak-motion`</a>  Machine learning motion x,y,z two label tinyML model   | Reminder put RAK2270 into AT+BOOT for boot mode. Load [d05-webSerial-works.ino](rak-sketches/d05-webSerial-works.ino)  Then go to the static webpage at   [tinyMLjs for the RAK2270StickerTracker](https://hpssjellis.github.io/tinyMLjs/public/acceleration/a00-best-acceleration-rak2270-sticker-tracker.html)  which will walk you through making the c-header code for a machine learning model   |     |   This is advanced and uses webserial to get data from the RAK, then TensorflowJS to make a machine learning model, then [iPython Notebook](https://colab.research.google.com/drive/1OgCcKhklL3EH_SdWHdtlb5dbtYvjGQnn?usp=sharing) to convert TFJS to Keras then to tFlite then to a c-header file. That test c-header file can then be included in the arduino code for exercise A59. (This is advanced) |
-|   <a name="a58" href="README.md#a58">`a58rak-lora-receive`</a>  LoRa webSerial reciever   | Install on the RAK2270 use AT+BOOT [l10-lora-p2p-receive-working.ino](rak-sketches/l10-lora-p2p-receive-working.ino). Run https://hpssjellis.github.io/mcu-stable-edu-launch/rak2270-sticker-tracker/html/lora-webpage-best.html webpage and connect the RAK2270 to it using webSerial. Any RAK2270 or other LoRa P2P devices will send to this website. This webpage will receive any RAK p2p data sent from the other assignments such as A55  [rack-send08-receive.ino](rak-sketches/rack-send08-receive.ino)   |     <img src="https://img.youtube.com/vi/dXM0W2zT288/hqdefault.jpg" width=600 />      <img src="https://img.youtube.com/vi/kTSe-4Z0Ewo/hqdefault.jpg" width=600 />       <img src="https://img.youtube.com/vi/4gubEe5WZXw/hqdefault.jpg" width=600 />          | Another advanced use of a static website and webSerial to connect one sticker tracker to receive P2P LoRa information from the other motion machine learning trained devices  [See Appendix H - LoRa Receiver Website Instructions](#appendix-h) |
-|   <a name="a59" href="README.md#a59">`a59-rocksetta-tinyML`</a>  RocksettaTinyML   | Not as hard as it looks. Uses the website from A58 to record machine learning motion on the RAK2270. Download this github as a zip file [https://github.com/hpssjellis/RocksettaTinyML](https://github.com/hpssjellis/RocksettaTinyML) and install on the arduino IDE usinging the menu "sketch" --> "Include Library" --> "Add .Zip Library" <br> After the RocksettaTinyML library is installed, load the example: "File" --> "Examples" --> "RocksettaTinyML" --> "RAK2270"-->"ml"-->"RAK2270-motion-2-label" Compile it and seee if it works. Note: must have LoRa P2P support but not LoRaWan support. When you have proof that this runs, then change the main code to -->   [rak2270-motion-2-label-p2p-serial-WORKS2.ino](rak-sketches/rak2270-motion-2-label-p2p-serial-WORKS2.ino)  This code should work with A58 sending the machine learning data to the P2P website that receives the data | ![image](https://github.com/hpssjellis/Maker100-xiaoML-kit/assets/5605614/044e0f38-e535-4bab-a6f2-0553b708ff95) <br> ![image](https://github.com/hpssjellis/maker100-eco/assets/5605614/d6fb67a3-99c0-45a4-acfc-020ce430b31c)    |  Note: You can use the machine learning model you made in assignment A57 but easier for testing just to use the default ML code included with the RocksettaTinyML example.    |
-
-
-## In-person course using the RAK2270StickerTracker
-Students are encouraged to work ahead of the class.
-
-| Topic | Example Code| Video | Instructions |
-|:---|:---|:---|:---|
-|  <a name="a60" href="README.md#a60">`a60-rak-p2p-LoRa-LoRaWan`</a> LoRaWan and LoRa P2P Test   |  [rak-hack06.ino](rak-sketches/rak-hack06.ino)   |   <img src="https://img.youtube.com/vi/7RiPQgiWXkc/hqdefault.jpg" width=600 />     | Shows many AT commands and switches between LoRaWan and LoRa settings. Your device should be able to send data to your teachers device over a local P2P LoRa network Students can try send there teacher their first names.<br> AT+PSEND=41426162207A3132 should be "ABab z12" <br>See chart <br>  <img src="https://github.com/hpssjellis/Maker100-xiaoML-kit/assets/5605614/cd2d5268-04ae-4e6d-a632-f3762a557026" width = "400px" />  |
-|  <a name="a61" href="README.md#a61">`a61-rak-temp-battery`</a>  Run NTC Temperature and Battery Voltage   |  [RAK-NTC-temp.ino](rak-sketches/RAK-NTC-temp.ino)   |   <img src="https://img.youtube.com/vi/1eSEkwWMcjE/hqdefault.jpg" width=600 />     |  Code prints out the battery voltage and board temperature. This gives us a chance to test other battery sources. Reminder anything over 5V may damage this board and even 5V might not work well. Research max and minimum acceptable votages.   |
-|   <a name="a62" href="README.md#a62">`a62-rak-LoRaWan-test`</a>  LoRaWan Test   |   [lorawan-test-08-byte-xyz-mapped.ino](rak-sketches/lorawan-test-08-byte-xyz-mapped.ino) with this js decoder file for datacake configuration [cayenneLPP.js](rak-sketches/cayenneLPP.js)   |   <img src="https://github.com/hpssjellis/maker100-eco/assets/5605614/d4bc64f0-9286-4989-a951-14f3b3f97f88" width = "400px" />    |  Get a test login to the console for either [meteoscientific.com](https://console.meteoscientific.com/front/)  or [helium-iot.eu](https://console.helium-iot.xyz/front/) and 1. set a device-profile for US915 and a codeC "cayenneLPP". then an application and on integration switch to datacake Devices, LoRaWan "show setup instructions" switch back and paste that HTTP URL. The back to applications and make a device with DevEUI, AppEUI (called Join eui) and then APpKey. Power up the RAK2270 and monitor debug windows etc. Back on Datacake go to configurations and decoder and past the cayenneLPP.js decoder and try some raw data. if that works then click the fileds and see if you can auto add them. then make a dashboard on datacake with the new fields.   Note: I think the acceleration actual data has issues see if someone can fix it.  |
-|   <a name="a63" href="README.md#a63">`a63-rak-motion`</a>  Run xyz acceleration   | [rak-accel-imu.ino](rak-sketches/rak-accel-imu.ino)     |    <img src="https://img.youtube.com/vi/hr-YT-qImJ4/hqdefault.jpg" width=600 />   | Fairly easy acceleration x, y, z example. Only problem here is the Rak clip does not work well with motion. the teacher should have a few boards with soldered wires that can be used well with motion.   |
-|   <a name="a64" href="README.md#a64">`a64-rak-fusion`</a>  Sensor Fusion   |      |     |You make this file. you have the code above. Run code with all the Sensors on the RAK2270: temperature, Humidity, 3 axis IMU: motion (xyz)  |
-|   <a name="a65" href="README.md#a65">`a65rak-raw`</a> LoRaWan-raw-number   |    [lorawan-test-send-2-bytes.ino](rak-sketches/lorawan-test-send-2-bytes.ino)   with a simple js decoder [2-bytes.js](rak-sketches/2-bytes.js)       |                    |  Theoretically this should be easier than the cayenneLPP setup, but we need simple code and a javascript decoder. See what you can do.  |
-|   <a name="a66" href="#a66">`a66-rak-stLink`</a>  STM32CubeProgrammer with STLINK V2 |   Try this blank sketch compiled binary file which allows theAT commands only <br> [rak-only-at-commands.hex](rak-sketches/rak-only-at-commands.hex)   |   <img src="https://img.youtube.com/vi/fUlx79bOjNs/hqdefault.jpg" width=600 />     |  Use the rak clip to access a few of the pins on the RAK2270 to see if you can program thme  |
-|   <a name="a67" href="README.md#a67">`a67-rak-pins`</a>  Easy and Hard pins test   |      |     |Use the RAKClip or Solder wires to the pads on the rak2270 and do some pin testing like you would for an Arduino   |
-|   <a name="a68" href="README.md#a68">`a68-rak-nothing`</a>  []()   |      |     |    |
-
+.
 
 
 
@@ -261,9 +265,18 @@ Students are encouraged to work ahead of the class.
 | <a name="FP3" href="README.md#FP3">`FP3`</a>  group final project, proof of concept for a viable product  |      |     |   [See Appendix K - Final Project 3](#appendix-k)  |
 
 
-## Unsorted Rak2270 Videos
 
 
+.
+
+
+
+.
+
+
+
+
+.
    
 
 ## View the old [maker100](https://github.com/hpssjellis/maker100#latest-portenta-pinout) course for the Portenta Pinout Diagram
@@ -277,11 +290,7 @@ Students are encouraged to work ahead of the class.
 
 
 
-## RAK2270 Sticker Tracker Pinout Diagram
 
-
-
- <img src="https://github.com/hpssjellis/maker100-eco/assets/5605614/a285279d-19f9-47ff-9b64-00c4b8f26087" width = "100%" /> 
 
  
 
