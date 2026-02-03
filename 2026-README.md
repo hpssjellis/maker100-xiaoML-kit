@@ -87,7 +87,9 @@ Video showing how to setup the XiaoEsp32s3. There are also lots of other instruc
 
 # Assignments done in order of our class in 2026, not the curriculum order.
 
-Note: Checked Hand drawn diagrams expected before any wiring is started, Then checked again before power connected.
+Note: Checked hand drawn diagrams expected before any wiring is started. Then checked again before power connected. <br>
+Also very short video proof for every assignment. 
+Which shows names or student symbol on a sheet of paper, circuit diagram, breadboard, serial monitor. Very short very clear.
 
 -------------------------------------------------------------------------------------------------------------
 
@@ -99,7 +101,9 @@ Note: Checked Hand drawn diagrams expected before any wiring is started, Then ch
 
 
 
-Note: soldered headers not needed, but a USB-C cable and computer or laptop to run the code is needed
+Note: A USB-C cable, sometimes a micro SD card and a computer or laptop to run the code. 
+Also a cell phone or webCam to video the assignment when finished.
+
 | Topic | Example Code| Video | Instructions and Prompt|
 |:---|:---|:---|:---|
 | <a name="a01-ml16" href="README.md#a01-ml16">`a01-ml16-on-device-machine-learning`</a>  Platformio and Arduino IDE on-devise-ml with u8g2 oled include library  | Great hard first day: [esp-all-menu-A0-image-train-infer.txt](https://github.com/hpssjellis/my-examples-of-tensorflowjs-for-tinytorch/blob/main/esp-on-device-train-one-program/esp-all-menu-A0-image-train-infer.txt), or try the easier first day which is the same as assignment a03-base06 but on both platformIO and the Arduino IDE  [seeed-blink-serial.ino](seeed-sketches/seeed-blink-serial.ino) | This assignment covers the [Maker100-Curriculum Basics](https://github.com/hpssjellis/maker100-curriculum#basics) Base01-base05, base07 Assignments   |   See [Tutorial ml16](#tutorial-ml16)  |
@@ -112,8 +116,8 @@ Note: soldered headers not needed, but a USB-C cable and computer or laptop to r
 |  <a name="a08-webAI06" href="README.md#a08-webAI06">`a08-webAI06-Hand Pose`</a> HandPose            |   Make a video of this webpage working [handpose](https://hpssjellis.github.io/beginner-tensorflowjs-examples-in-javascript/tfjs-models/handpose/index.html)           | This is your first [Maker100- Curriculum-WebAI](https://github.com/hpssjellis/maker100-curriculum?tab=readme-ov-file#webai-edgeai) assignment working presently only on your cell phone or desktop/laptop computer, eventually TinyML will be powerrful enough to run this code. Note: Several Raspberry Pis and the Arduino UnoQ can already run this code out of a web browser on the Linux tiny device.   |       |
 |  <a name="a09-iot02" href="README.md#a09-iot02">`a09-iot02-Camera-web-server`</a> Camera web server            |   Make a video of the default ESP32S3 Camera sgreaming webserver. You can use the class hotspot or your own cell phone hotspot and enter the SSID and password. Ask the teacher to put those on the board.           | This is your first [Maker100- Curriculum-IoT]() assignment which has some kind of communication between devices.   |       |
 | <a name="a10-ml02" href="README.md#a10-ml02">`a10-ml02 EdgeImpulse Vision Model`</a>  Follow the EdgeImpulse Vision Classification Machine Learning model   | You make the code and download it as an Arduino Library from Edge Impulse |  [https://edgeimpulse.com/](https://edgeimpulse.com/)     This is a full playlist so many other videos here might help  <img src="https://img.youtube.com/vi/wbX_-No8kIw/hqdefault.jpg" width=600 />              |      This website is a good starting point [https://hpssjellis.github.io/multi-language-edgeimpulse-tutorial-vision-cell-phone/](https://hpssjellis.github.io/multi-language-edgeimpulse-tutorial-vision-cell-phone/). For this assignment we are not using the microcontroller.    [See Appendix F - EdgeImpulse Instructions and Prompt](#appendix-f) |
-|  <a name="a11-code01-09" href="README.md#a11-code01-09">`a11-code01-09 VIDEO FLAC`</a> All Code (VIDEO FLAC) Assignments           |   Install the Arduino library ([Portenta Pro Community Solutions](https://github.com/hpssjellis/portenta-pro-community-solutions/tree/main/examples/dot7-coding-curriculum)) and load, change and video all Coding assignments dot72-dot79 You can copy them directly from the github, or from the examples in the library. Mainy of the course assignments are in that library          | VIDEO FLAC is basic coding skills: Variables, Input output, Decisions, Events, Objects(Structs), Functions, Loops, Arrays, Classes(Properties and Methods)    |       |
-
+|  <a name="a11-code01-09" href="README.md#a11-code01-09">`a11-code01-09 VIDEO FLAC`</a> All Code (VIDEO FLAC) Assignments           |   Install the Arduino library ([Portenta Pro Community Solutions](https://github.com/hpssjellis/portenta-pro-community-solutions/tree/main/examples/dot7-coding-curriculum)) and load, change and video all Coding assignments dot72-dot79 You can copy them directly from the github, or from the examples in the library.  Mainy of the course assignments are in that library          | VIDEO FLAC is basic coding skills: Variables, Input output, Decisions, Events, Objects(Structs), Functions, Loops, Arrays, Classes(Properties and Methods)    |  One of the few assignments that might need it's own folder, but the video gets copied into the main folder. Slightly change each program. 9 programs one grade.    |
+|  <a name="a12-webAI01-11" href="README.md#a12-webAI01-11">`a12-webAI01-11`</a> All Code WebAI Assignments        |   Prove you can get most of these working  the location with links is on the [Maker100-curriculum-webAI](https://github.com/hpssjellis/maker100-curriculum/blob/main/README.md#webai-edgeai) page         | Copy the examples and get the webpages working  |  One of the few assignments that might need it's own folder, but the video gets copied into the main folder. Slightly change each program. 10 programs one grade. We have already done the hand pose   |
 
 
 
@@ -121,14 +125,11 @@ Note: soldered headers not needed, but a USB-C cable and computer or laptop to r
 
 <br><br><br>
 # In-Person Course on Sensors using the XiaoEsp32s3-sense
-Note: soldered headers are now needed on the XiaoEsp32s3-sense
 Students are encouraged to work ahead of the class.
 
 | Topic | Example Code| Video | Instructions and Prompt|
 |:---|:---|:---|:---|
 |   <a name="a17" href="README.md#a17">`a17-VIDEO-FLAC`</a>  VIDEO-FLAC   |      |     [<img src="https://img.youtube.com/vi/10AWWoxYl-k/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=10AWWoxYl-k&list=PL57Dnr1H_eguoFKLWY0nLMz0QI3nyQVmQ&index=4 )        | Try all the main programming steps in C/C++ on the XIAO using the examples in the Dot7 folder of the Portenta Pro Community Solutions Arduino Library  [here](https://github.com/hpssjellis/portenta-pro-community-solutions/tree/main/examples/dot7-coding-curriculum)  Don't do Dot71 as that is for another assignment. <details closed> <summary>More Instructions</summary> Note: Video-Flac translates to Variables, Input/Output, Decisions, Events, Objects/Structs - Functions, Loops, Arrays, Classes </details> <details closed> <summary>ChatGPT Prompt</summary> ... </details>  |
-|  <a name="a18" href="README.md#a18">`a18-button-to-blink`</a>.  Button causes LED to blink          |       [seeed-led-button.ino](seeed-sketches/seeed-led-button.ino) |   [<img src="https://img.youtube.com/vi/SkTqOthK3JM/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=SkTqOthK3JM&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=4&pp=gAQBiAQB2)     [<img src="https://img.youtube.com/vi/wFw-AF8gwiY/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=wFw-AF8gwiY&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=2)           |                   <img src="media/b-b-h-button-control-led.jpg" width = 200/>  <br>        Control the LED with the button, then control multiple LED's with Multiple Buttons. Note: Can't control large current flow devices, WHY? Could you make the external LED interact like the internal LED?    |
-|   <a name="a19" href="README.md#a19">`a19-sos`</a>  Flash SOS                           |     [dot71-sos](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot7-coding-curriculum/dot71-sos/dot71-sos.ino)                                                                                                                                                                         |   [<img src="https://img.youtube.com/vi/lvEuArebVuA/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=lvEuArebVuA&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=9&pp=iAQB)      [<img src="https://img.youtube.com/vi/iDC3vuBGGcg/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=iDC3vuBGGcg&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=11)          |                    Get the code running to flash the LED_BUILTIN, then have it flash an SOS. 3 short flashes, 3 long flashes, 3 short flashes then a 5 second rest.     |
 |  <a name="a20" href="README.md#a20">`a20-voltage-divider`</a> Analog Read (Voltage divider for various 2 prong sensors (variable resistors: flex sensor, photoresistor, touch/pressure sensor))                |  [dot211-any-variable-resistor-sensor.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot21-sensors/dot211-any-variable-resistor-sensor/dot211-any-variable-resistor-sensor.ino)    |       [<img src="https://img.youtube.com/vi/wA6JB-PzuUs/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=wA6JB-PzuUs&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=3&pp=gAQBiAQB)        [<img src="https://img.youtube.com/vi/GR3D8C6dOl8/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=GR3D8C6dOl8&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=3)            |                 Change the Resistor amount and which resistor is attached to 3V3 to get the largest most sensible range of readings.     |
 |   <a name="a21" href="README.md#a21">`a21-two-wire`</a>  Another two wire sensor  |      |     | Figure out how to read the sensor from another variable resistor sensor like a flex sensor, photo-resistor, pressure sensor etc.  |
 |  <a name="a22" href="README.md#a22">`a22-joystick`</a>  Game Controller/JoyStick   |      |     | Figure out how to use the 3 wires (3V3, GND, A0) for one dimension of a joystick  |
@@ -147,15 +148,12 @@ Students are encouraged to work ahead of the class.
 
 <br><br><br>
 # In-Person Course on Actuators using the XiaoEsp32s3-sense
-Note: soldered headers are now needed on the XiaoEsp32s3-sense
 Students are encouraged to work ahead of the class.
 
 | Topic | Example Code| Video | Instructions and Prompt|
 |:---|:---|:---|:---|
-|  <a name="a30" href="README.md#a30">`a30-servo`</a> Servo                           |      [seeed-servo-needs-ESP32Servo-include.ino](seeed-sketches/seeed-servo-needs-ESP32Servo-include.ino)       |   [<img src="https://img.youtube.com/vi/c3j7Vi28n24/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=c3j7Vi28n24&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=14&pp=iAQB)      [<img src="https://img.youtube.com/vi/4p3yIF_4pk8/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=4p3yIF_4pk8&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=6)          |                 MUST HAVE AN EXTERNAL BATTERY TO RUN THE 6 VOLT SERVO! Need the negative GND from the external battery to run to both the XIAO and the servo. Also you need to find the library and include it  ```#include <ESP32Servo.h>```  I have the Pololu Servo Product number 1057, Power HD High-Torque Servo 1501MG [here](https://www.pololu.com/product/1057).  <br> To connect XIAO D5 (orange wire) GND (brown wire) to the servo, <br> 6 volt battery positive (red) and Negative (brown) to servo.   |
 |   <a name="a31" href="README.md#a31">`a31-pnp`</a> PNP Transistor                        |      [dot224-pwm-transistor.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot22-actuators/dot224-pwm-transistor/dot224-pwm-transistor.ino)          |         [<img src="https://img.youtube.com/vi/XqxTnUFlMnY/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=XqxTnUFlMnY&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=17)    |     <img src="https://user-images.githubusercontent.com/5605614/156191081-89142347-8494-46d0-ae48-53566c884bc9.png" width = 200/> <br>                         Make either PNP transistor with a small motor. |
 |  <a name="a32" href="README.md#a32">`a32-npn`</a> NPN Transistor                        |      [dot224-pwm-transistor.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot22-actuators/dot224-pwm-transistor/dot224-pwm-transistor.ino)          |         [<img src="https://img.youtube.com/vi/XqxTnUFlMnY/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=XqxTnUFlMnY&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=17)    |    <img src="https://user-images.githubusercontent.com/5605614/156191554-49bd23c3-d38c-4fc5-b04f-8ec9add68763.png" width = 200/>     <br>                        Make an NPN transistor with a small motor |
-| <a name="a33" href="README.md#a33">`a33-nothing`</a> Nothing Yet        |                |      |       |
 |  <a name="a34" href="README.md#a34">`a34-small-dc-motor`</a> Small Dual DC Motor Driver                            |       [dot226-small-dual-dc-motor-driver.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot22-actuators/dot226-small-dual-dc-motor-driver/dot226-small-dual-dc-motor-driver.ino)  |  [<img src="https://img.youtube.com/vi/dQZzMBJbSXk/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=dQZzMBJbSXk&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=15&pp=iAQB)     [<img src="https://img.youtube.com/vi/lUE-hmAddhY/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=lUE-hmAddhY&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=5)     |     <img src="media/b-b-f-small-dual-dc-motor-driver.png" width = 200/>     <br>  Get a small motor working using it's own power supply and change the code so it does what you want. Pololu #2135 DRV8835 Dual Motor Driver Carrier  [here](https://www.pololu.com/product/2135)     |
 |   <a name="a35" href="README.md#a35">`a35-large-dc-motor`</a> Large DC Motor Driver                          |  Not-working -->   [dot227-big-dc-motor-driver.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot22-actuators/dot227-big-dc-motor-driver/dot227-big-dc-motor-driver.ino)   ,  Working checked by Seth and Jade [seeed-sketches/a35-new-big-motor.ino ](seeed-sketches/a35-new-big-motor.ino )        |  [<img src="https://img.youtube.com/vi/hE4dZ66sOWw/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=hE4dZ66sOWw&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=16&pp=iAQB)       [<img src="https://img.youtube.com/vi/YcRQSFhr8MY/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=YcRQSFhr8MY&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=7)         |                  <img src="media/b-b-g-big-dc-motor-driver.png" width = 200/>   <br>     Get a 6V motor running and change code for it to do what you want. Protect the Phton from the 6 Volt motor side. Check Pololu 1451 VNH5019 Motor Driver Carrier [here](https://www.pololu.com/product/1451)     |
 |   <a name="a36" href="README.md#a36">`a36-stepper-motor`</a> Stepper Motor                         |           [dot225-stepper-motor.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot22-actuators/dot225-stepper-motor/dot225-stepper-motor.ino)      |      [<img src="https://img.youtube.com/vi/Fru6QtzLnrI/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=Fru6QtzLnrI&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=4)            |                     <img src="media/b-b-e-stepper-motor.png" width = 200/>     <br>     Note: This stepper needs 6V, Change code to do what you want.  Pololu 2134 DRV8834 Low-Voltage Stepper Motor Driver Carrier [here](https://www.pololu.com/product/2134)   |
@@ -177,7 +175,6 @@ Students are encouraged to work ahead of the class.
 
 <br><br><br>
 ## IoT part of the in-person course using the XiaoEsp32s3-sense
-Note: soldered headers not needed (this part of the course could be done earlier)
 Students are encouraged to work ahead of the class.
 
 | Topic | Example Code| Video | Instructions |
@@ -188,92 +185,28 @@ Students are encouraged to work ahead of the class.
 |   <a name="a50" href="README.md#a50">`a50-serial-putty`</a> Serial-putty or Linux "screen"         | This is a program to load on your computer that replaces the arduino serial monitor           |      |      Fairly easy once putty is installed. Load power shell and type mode with your Portenta programmed with a serial monitor program find the port. Then switch to Serial on Putty and Correct the COM port. Open and see if you can see serial output from the Portenta        |
 |  <a name="a51" href="README.md#a51">`a51-adafruitIO`</a> Web-AdafruitIO-Connectivity                        |  MQTT-ESP32-Websocket <br> [seeed-adafruit-mqtt-g.ino](seeed-sketches/seeed-adafruit-mqtt-g.ino) <br> <br> The MQTT library to install was written by Joel Gaehwiler and is way down on the arduino library install list  <br><br>    | First  [adafruit login](https://accounts.adafruit.com/users/sign_in) <br><br> Then setup a webpage websocket to see how things work use this webpage <br> [ada-websocket02.html](https://hpssjellis.github.io/my-examples-of-iot-platforms/public/ada-websocket02.html)  <br> Use the key and username from the Adafruit "IO" site. <br><br>  Lots of information for the PortentaH7 at this website<br> <a href="https://hpssjellis.github.io/my-examples-of-iot-platforms/public/index.html">Adafruit-Connectivity</a>     | This is a good but large project. A lot for things to learn here |
 |  <a name="a52" href="README.md#a52">`a52-BLE`</a>  Bluetooth Connectivity   |  [seeed-draft-BLE.ino](seeed-sketches/seeed-draft-BLE.ino)    |     | The ESP library should have some BLE code. You will need an App like NRF connect by nordic semiconductor to see the BLE connection    |
-|   <a name="a53" href="README.md#a53">`a53-nothing`</a> Nothing Yet                     |       |           |                    |
 
 
 
 
 
+<br><br><br>
+## Machine Learning part of the in-person course using the XiaoEsp32s3-sense
+Students are encouraged to work ahead of the class.   
+Note: These assignments should be done as a break from the regular course throught the course assignments. 
+It is a bit to heavy to do all of these one after another.
 
 
-
-
-
-.
-
-
-
-
-.
-
-
-
-
-
-
-.
-
-
-
-
-.
-
-
-
-
-
-
-.
-
-
-
-
-
-
-.
-
-
-
-
-.
-
-
-
-
-# The following will eventually be in the above table when the assignments are completed
-
-
-# One Day Conference using the XiaoEsp32s3-sense
-Note: soldered headers are not needed, but a cell phone or webCam laptop is needed, along with a usb-C to USB-A cable
-Students are encouraged to work ahead.
 
 | Topic | Example Code| Video | Instructions and Prompt |
 |:---|:---|:---|:---|
 |  <a name="a02" href="README.md#a02">`a02-cell-classify`</a>   Make a vision classification machine learning model using your cell phone    |     [edgeimpulse.com](https://studio.edgeimpulse.com/login)              |  <img src="https://img.youtube.com/vi/7Aucyd10Mtw/hqdefault.jpg" width=600 />       This is a full playlist so many other videos here might help  <img src="https://img.youtube.com/vi/wbX_-No8kIw/hqdefault.jpg" width=600 />              |      This website is a good starting point [https://hpssjellis.github.io/multi-language-edgeimpulse-tutorial-vision-cell-phone/](https://hpssjellis.github.io/multi-language-edgeimpulse-tutorial-vision-cell-phone/). For this assignment we are not using the microcontroller.    [See Appendix F](#appendix-f) |
-|   <a name="a03" href="README.md#a03">`a03-blink-serial-print`</a>  Xiao Esp32s3 LED Blink and Serial Print  | [seeed-blink-serial.ino](seeed-sketches/seeed-blink-serial.ino) |     <img src="https://img.youtube.com/vi/0OLsLl-CBHQ/hqdefault.jpg" width=600 />    <img src="https://img.youtube.com/vi/3E5KUT115xY/hqdefault.jpg" width=600 />         |                     Print other things and change the pattern of blinking delay times  |
 |  <a name="a04" href="README.md#a04">`a04-xiao-classify`</a> BONUS. PRESENTLY NOT WORKING! Put the above classify Vision model on the XiaoEsp32s3 Using the Arduino IDE  | Needs board version 2.0.15   [seeed-edgeimpulse-vision-fomo.ino](./seeed-sketches/seeed-edgeimpulse-vision-fomo.ino)  Advanced fix the code for the latest board >= 3.2.0  |      <img src="https://img.youtube.com/vi/i2xg_wxBGdc/hqdefault.jpg" width=600 />    |  Set Arduino Tools-->PSRAM-->OPI PSRAM and presently for Vision must use the OLD Arduino IDE  ~1.8.19 Note: on edge impulse turn off the EON compiler before exporting the library.   |
-|   <a name="a05" href="README.md#a05">`a05-sensecraft`</a>  Put the above Vision model on the XiaoEsp32s3 Using SenseCraft  |  Note updated link Feb 28, 2025  direct webpage [https://sensecraft.seeed.cc/ai/#/home](https://sensecraft.seeed.cc/ai/#/home)    |   | On edgeimpulse dashboard export your model using Int8 quantized and upload using Sensecraft    |
 |   <a name="a06" href="README.md#a06">`a06-cell-FOMO`</a>  Using your cell phone to make a FOMO model   |      |     | No unknown and must choose bounding boxes. Still use grayscale and 96x96 resolution   |
 |  <a name="a07" href="README.md#a07">`a07-XIAO-FOMO`</a>  Put the FOMO model onto the XiaoEsp32s3  | Needs board version 2.0.17 WORKS ON BOTH NEW AND OLD ARDUINO IDE  [seeed-edgeimpulse-vision-fomo.ino](./seeed-sketches/seeed-edgeimpulse-vision-fomo.ino)  Advanced fix the code for the latest board >= 3.2.0   |  Unlike Classify, FOMO works on the new Arduino IDE, same code as for vision.   <img src="https://img.youtube.com/vi/i2xg_wxBGdc/hqdefault.jpg" width=600 />    | Must download the deployment Arduino library from EdgeImpulse and see the example to get the include filename. then copy that include file name to the code to the left.  |
-
-
-
-
-
-
-
-# Second Day Conference using the XiaoEsp32s3-sense
-Note: soldered headers not needed, but a cell phone or webCam laptop is needed, along with a USB-C to USB-A cable and a micro sd-card
-Students are encouraged to work ahead.
-
-| Topic | Example Code| Video | Instructions and Prompt |
-|:---|:---|:---|:---|
 |   <a name="a08" href="README.md#a08">`a08-cell-wake-word`</a>  Use your cell phone to make a Yes, No, unknown Sound Model   |      |     |   Follow the wizard on Edgeimpulse to make a verbal Machine Learning model using your cell phone. Then download the Arduino deployment, install the zipped Arduino library and choose the default Portenta Sound example. Then talk into your Portenta and view the Serial Monitor. Then get the onboard LED to respond to your voice.            |
 |   <a name="a09" href="README.md#a09">`a09-xiao-wake-word`</a>  Put the sound (wake word) model onto your XiaoEsp32s   | As far as I can tell student Riley fixed this one as well. Can someone check it?  [seeed-edgeimpulse-sound.ino](./seeed-sketches/seeed-edgeimpulse-sound.ino)   |     | Make the normal edgeimpulse.com sound model. then deplyment -->Arduino and add the zipped library to the arduino IDER. Then view the example to get the proper include filename and use that include file name with the code provided.    |
 |  <a name="a10" href="README.md#a10">`a10-cli`</a>  (optional) Try the Edgeimpulse connection method  |   [edgeimpulse.com](https://studio.edgeimpulse.com/login)      |     |    |
-|   <a name="a11" href="README.md#a11">`a11-nothing`</a> Nothing Yet           | |     | |
-|   <a name="a12" href="README.md#a12">`a12-nothing`</a> Nothing Yet           | |     | |
-|  <a name="a13" href="README.md#a13">`a13-nothing`</a> XiaoEsp32s3 camera to micro sd-card to FOMO model to XiaoEsp32s3   |  [seeed-cam-to-sd-card.ino](seeed-sketches/seeed-cam-to-sd-card.ino)  then [seeed-edgeimpulse-vision-fomo.ino](./seeed-sketches/seeed-edgeimpulse-vision-fomo.ino)   |     | Must download the deployment Arduino library from EdgeImpulse and see the example to get the include filename. Then copy that include file name to the code to the left. [See Appendix G - Camera SD Card Instructions](#appendix-g)  |
 |   <a name="a14" href="README.md#a14">`a14-cell-motion`</a>  EdgeImpulse cell phone motion x,y,z model   |      |     | Do this for later in the course when we use the RAK2270StickerTracker to get an idea of what we are doing. If you have a motion sensor for the XiaoEsp32s3-sense then you could upload this model to it but that is optional  |
 |   <a name="a15" href="README.md#a15">`a15-vision-regression`</a>  Vision regression Analysis  |   Have it work on your cell phone only. Regression means every label is an integer.   |   | Same as Vision Classification except no unknown and each label is an integer value. At the ```Add a Learning block``` add the normal "Transfer Learning" but also add Regression. For regression you train each label as an integer value reflecting some size amounts. We will do the distance to a computer mouse from above. Try to train 1m, 2m and 3m. Then on classification the model should estimate the distance.  |
 |   <a name="a16" href="README.md#a16">`a16-anamoly`</a> Vision Anomaly Detection |  Have it work on your cell phone only. Anamoly simply means it is a measure of how different it is than the changing set.    |     | This time you visually train on what you expect. You can do 0unknown and 1pen like the first vision classification example. Anomoly rates how different the result is from the training as a digital percent.  At the ```Add a Learning block``` add the normal "Transfer Learning" but also click "Show all blocks" and find ```Anomoly```.  Then on classification the model should detect the pen and rate it's anomoly.    |
