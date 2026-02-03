@@ -100,8 +100,11 @@ Which shows names or student symbol on a sheet of paper, circuit diagram, breadb
 
 
 
+<br><br><br>
+# In-Person Course overview using the XiaoEsp32s3-sense  
+Students are encouraged to work ahead of the class as we don't expect to have class sets of all the sensors.  
 
-Note: A USB-C cable, sometimes a micro SD card and a computer or laptop to run the code. 
+Note: YOu will need a USB-C cable a computer or laptop to run the code and sometimes a micro SD card.  
 Also a cell phone or webCam to video the assignment when finished.
 
 | Topic | Example Code| Video | Instructions and Prompt|
@@ -122,8 +125,13 @@ Also a cell phone or webCam to video the assignment when finished.
 
 .
 
+<br><br><br>
+# In-Person Course on the XIAOML kit which is just the XIAO esp32s3 with an OLED and a motion IMU (x,y,z acceleration)
 
-
+| Topic | Example Code| Video | Instructions and Prompt|
+|:---|:---|:---|:---|
+|  <a name="a13-OLED-hello" href="README.md#a13-OLED-hello">`a13-OLED-hello`</a>        |   The blink-serial-program for the XIAO ML Kit, says hello on the OLED  [xiaoML-kit/xiaoML-good-serial-blink-oled-digital-read.ino](https://github.com/hpssjellis/maker100-xiaoML-kit/blob/main/xiaoML-kit/xiaoML-good-serial-blink-oled-digital-read.ino)   |   If you have the XIAO ML Kit this is the best program to leave on the device after your have done your assignments. Then just plug it into power and you can see that the board works.    |  Careful with the OLED if you bend it too often the connection weakens  |
+|  <a name="a14-IMU-Motion" href="README.mda14-IMU-Motion">`a14-IMU-Motion`</a>        |  Basic x, y, z motion with the XIAO ML Kit [xiaoML-kit/xiaoML-6dof-imu-basics.ino](https://github.com/hpssjellis/maker100-xiaoML-kit/blob/main/xiaoML-kit/xiaoML-6dof-imu-basics.ino)   |  This would be a goo da ssignment to try to put the results onto the OLED. Presently only showing on the serial monitor.    |   |
 .
 
 
@@ -159,7 +167,6 @@ Students are encouraged to work ahead of the class.
 
 | Topic | Example Code| Video | Instructions and Prompt|
 |:---|:---|:---|:---|
-|   <a name="a17" href="README.md#a17">`a17-VIDEO-FLAC`</a>  VIDEO-FLAC   |      |     [<img src="https://img.youtube.com/vi/10AWWoxYl-k/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=10AWWoxYl-k&list=PL57Dnr1H_eguoFKLWY0nLMz0QI3nyQVmQ&index=4 )        | Try all the main programming steps in C/C++ on the XIAO using the examples in the Dot7 folder of the Portenta Pro Community Solutions Arduino Library  [here](https://github.com/hpssjellis/portenta-pro-community-solutions/tree/main/examples/dot7-coding-curriculum)  Don't do Dot71 as that is for another assignment. <details closed> <summary>More Instructions</summary> Note: Video-Flac translates to Variables, Input/Output, Decisions, Events, Objects/Structs - Functions, Loops, Arrays, Classes </details> <details closed> <summary>ChatGPT Prompt</summary> ... </details>  |
 |  <a name="a20" href="README.md#a20">`a20-voltage-divider`</a> Analog Read (Voltage divider for various 2 prong sensors (variable resistors: flex sensor, photoresistor, touch/pressure sensor))                |  [dot211-any-variable-resistor-sensor.ino](https://github.com/hpssjellis/portenta-pro-community-solutions/blob/main/examples/dot2-portenta-h7-with-accessories/dot21-sensors/dot211-any-variable-resistor-sensor/dot211-any-variable-resistor-sensor.ino)    |       [<img src="https://img.youtube.com/vi/wA6JB-PzuUs/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=wA6JB-PzuUs&list=PL57Dnr1H_egt9XmHjfcyRR4YCo3eGrZwQ&index=3&pp=gAQBiAQB)        [<img src="https://img.youtube.com/vi/GR3D8C6dOl8/hqdefault.jpg" width=600 />](https://www.youtube.com/watch?v=GR3D8C6dOl8&list=PL57Dnr1H_egv1FVzAcCZVeANJMs3Hta05&index=3)            |                 Change the Resistor amount and which resistor is attached to 3V3 to get the largest most sensible range of readings.     |
 |   <a name="a21" href="README.md#a21">`a21-two-wire`</a>  Another two wire sensor  |      |     | Figure out how to read the sensor from another variable resistor sensor like a flex sensor, photo-resistor, pressure sensor etc.  |
 |  <a name="a22" href="README.md#a22">`a22-joystick`</a>  Game Controller/JoyStick   |      |     | Figure out how to use the 3 wires (3V3, GND, A0) for one dimension of a joystick  |
