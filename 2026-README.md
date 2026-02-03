@@ -282,18 +282,7 @@ It is a bit to heavy to do all of these one after another.
 
 
 
-
-.
-   
-
-## View the old [maker100](https://github.com/hpssjellis/maker100#latest-portenta-pinout) course for the Portenta Pinout Diagram
-
-
-## XIAO esp32s3-sense  Pinout Diagram
-
-
-
- <img src="https://github.com/hpssjellis/maker100-eco-change/assets/5605614/c818e03f-562f-40df-8726-f0e5d5903596" width = "100%" /> 
+ 
 
 
 
@@ -495,5 +484,23 @@ Give me the steps to make a vision classification model on edgeimpulse.com with 
 The website is from my page, if you want to edit it, just download the entire Maker100-xiaoML-kit repository and go to the folder [rak-sketches/rak-html/lora-webpage-best.html](/rak-sketches/rak-html/lora-webpage-best.html) from your computer so you can make changes. Typically these websites need to run from an https webpage but I think these run fine from your own computer even if the internet is shut off
 
 ---
+
+
+
+.
+## XIAO esp32s3-sense  Pinout Diagram
+
+
+<img width="1485" height="1255" alt="image" src="https://github.com/user-attachments/assets/dd1f4474-8a7d-4989-9bc9-74fa03fd6a21" />
+   
+
+## View the old [maker100](https://github.com/hpssjellis/maker100#latest-portenta-pinout) course for the Portenta Pinout Diagram
+
+
+## View the old [XIAO SAMD21 pinout](https://github.com/hpssjellis/maker100#xiao-pinout) diagram
+
+Has a few slight differences to the XIAO ESP32S3 board
+
+
 
 
