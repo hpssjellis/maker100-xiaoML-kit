@@ -97,8 +97,8 @@ Video showing how to setup the XiaoEsp32s3. There are also lots of other instruc
 # In-Person Course overview using the XiaoEsp32s3-sense  
 Students are encouraged to work ahead of the class as we don't expect to have class sets of all the sensors.  
 
-Note: YOu will need a USB-C cable a computer or laptop to run the code and sometimes a micro SD card.  
-Also a cell phone or webCam to video the assignment when finished.
+Note: You will need a USB-C cable a computer or laptop to run the code and sometimes a micro SD card.  
+Also a cell phone or webCam to video the assignment when it is finished.
 
 | Topic | Example Code| Video | Instructions and Prompt|
 |:---|:---|:---|:---|
