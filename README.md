@@ -73,11 +73,16 @@ Video showing how to setup the XiaoEsp32s3. There are also lots of other instruc
 
 ------------------------------------------------------------------------------------------------------------
 
-# Assignments done in order of our class in 2026, not the curriculum order.
+## Assignments done in order for of our class of 2026, not the [Maker100 curriculum order](https://github.com/hpssjellis/maker100-curriculum).
 
-Note: Checked hand drawn diagrams expected before any wiring is started. Then checked again before power connected. <br>
-Also very short video proof for every assignment. 
-Which shows names or student symbol on a sheet of paper, circuit diagram, breadboard, serial monitor. Very short very clear.
+# Steps:
+
+1. For many assignments first install the code (Arduino Sketch)
+2. Unplug your device.
+3. Then have a classmate or teacher check your hand drawn named circuit diagram before connecting any wires.
+4. When Diagram OK, wire up the device and have it checked again before copnnecting ANY power (Battery and or USB-C power)
+5. Check serial monitor if applicable
+6. Make a very short video that shows, your names(s), circuit diagram, the board, serial monitor as proof of it working. 
 
 -------------------------------------------------------------------------------------------------------------
 
