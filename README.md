@@ -60,8 +60,9 @@ Price list for the equipment I will be using in 2026 [price-2026-00.html](price-
 
 
 
-For Arduino IDE Boards for both the Xioa-Esp32s3 and XIAO ML Kit Search for ESP32 and install the board, then look for XIAO ESP32S3 specific board
-Note: No Preferences needed the Espressif board is properly listed. Do not install the Arduino ESP32 board just the official Espressif board.
+For Arduino IDE install the expressiff ESP32 board. When loading that board look for the XIAO ESP32S3. 
+
+Note: The Port is often named for the wrong ESP32 and that is OK.  
 
 
 Video showing how to setup the XiaoEsp32s3. There are also lots of other instructions online to help with setup.
