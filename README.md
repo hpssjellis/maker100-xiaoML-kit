@@ -32,23 +32,24 @@ Price list for the equipment I will be using in 2026 [price-2026-00.html](price-
 
 
 
-**Teacher Extras:** [See Appendix A](#appendix-a)
+**Teacher Extras:** [See Appendix A](#appendix-a-teacher-extras---why-not-use-the-xiao-expansion-board-and-round-display)
+
 
 ---
 
-**Teacher Tips:** [See Appendix B](#appendix-b)
+**Teacher Tips:** [See Appendix B](#appendix-b-teacher-tips---teaching-guidelines-and-best-practices)
 
 ---
 
-**Why Maker100-xiaoML-kit?** [See Appendix C](#appendix-c)
+**Why Maker100-xiaoML-kit?** [See Appendix C](#appendix-c-why-maker100-xiaoml-kit)
 
 ---
 
-**How much cheaper is the XIAOML kit version?** [See Appendix D](#appendix-d)
+**How much cheaper is the XIAOML kit version?** [See Appendix D](#appendix-d-price-comparison---how-much-cheaper-is-the-xiaoml-kit-version)
 
 ---
 
-**Useful Links:** [See Appendix E](#appendix-e)
+**Useful Links:** [See Appendix E](#appendix-e-useful-links)
 
 ---
 
