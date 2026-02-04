@@ -427,32 +427,72 @@ Give me the steps to make a vision classification model on edgeimpulse.com with 
 
 ## Appendix G: Camera SD Card Instructions - More Details
 
+Anytime you use the XIAO ESP32S3 Sense Camera you may run into pin issues. This pin setup works
+
 ```
-#define PWDN_GPIO_NUM     -1
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM     10
-#define SIOD_GPIO_NUM     40
-#define SIOC_GPIO_NUM     39
-#define Y9_GPIO_NUM       48
-#define Y8_GPIO_NUM       11
-#define Y7_GPIO_NUM       12
-#define Y6_GPIO_NUM       14
-#define Y5_GPIO_NUM       16
-#define Y4_GPIO_NUM       18
-#define Y3_GPIO_NUM       17
-#define Y2_GPIO_NUM       15
-#define VSYNC_GPIO_NUM    38
-#define HREF_GPIO_NUM     47
-#define PCLK_GPIO_NUM     13
+
+
+//This stuff is just for reference showing all the camera setting you could try.
+
+//NOTE: Must have compile setting 
+//PSRAM: OPI PSRAM 
+
+typedef enum {
+    FRAMESIZE_96X96,    // 96x96
+    FRAMESIZE_QQVGA,    // 160x120
+    FRAMESIZE_QCIF,     // 176x144
+    FRAMESIZE_HQVGA,    // 240x176
+    FRAMESIZE_240X240,  // 240x240
+    FRAMESIZE_QVGA,     // 320x240
+    FRAMESIZE_CIF,      // 400x296
+    FRAMESIZE_HVGA,     // 480x320
+    FRAMESIZE_VGA,      // 640x480
+    FRAMESIZE_SVGA,     // 800x600
+    FRAMESIZE_XGA,      // 1024x768
+    FRAMESIZE_HD,       // 1280x720
+    FRAMESIZE_SXGA,     // 1280x1024
+    FRAMESIZE_UXGA,     // 1600x1200
+    // 3MP Sensors
+    FRAMESIZE_FHD,      // 1920x1080
+    FRAMESIZE_P_HD,     //  720x1280
+    FRAMESIZE_P_3MP,    //  864x1536
+    FRAMESIZE_QXGA,     // 2048x1536
+    // 5MP Sensors
+    FRAMESIZE_QHD,      // 2560x1440
+    FRAMESIZE_WQXGA,    // 2560x1600
+    FRAMESIZE_P_FHD,    // 1080x1920
+    FRAMESIZE_QSXGA,    // 2560x1920
+    FRAMESIZE_INVALID
+} framesize_t;
+
+
+
+
+typedef enum {
+    PIXFORMAT_RGB565,    // 2BPP/RGB565
+    PIXFORMAT_YUV422,    // 2BPP/YUV422
+    PIXFORMAT_YUV420,    // 1.5BPP/YUV420
+    PIXFORMAT_GRAYSCALE, // 1BPP/GRAYSCALE
+    PIXFORMAT_JPEG,      // JPEG/COMPRESSED
+    PIXFORMAT_RGB888,    // 3BPP/RGB888
+    PIXFORMAT_RAW,       // RAW
+    PIXFORMAT_RGB444,    // 3BP2P/RGB444
+    PIXFORMAT_RGB555,    // 3BP2P/RGB555
+} pixformat_t;
+
+
+
+
+
+
 ```
 
 
 
 ---
 
-## Appendix H: LoRa Receiver Website - More Instructions
+## Appendix H:
 
-The website is from my page, if you want to edit it, just download the entire Maker100-xiaoML-kit repository and go to the folder [rak-sketches/rak-html/lora-webpage-best.html](/rak-sketches/rak-html/lora-webpage-best.html) from your computer so you can make changes. Typically these websites need to run from an https webpage but I think these run fine from your own computer even if the internet is shut off
 
 ---
 
