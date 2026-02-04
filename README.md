@@ -51,21 +51,7 @@ Price list for the equipment I will be using in 2026 [price-2026-00.html](price-
 
 **Useful Links:** [See Appendix E](#appendix-e-useful-links)
 
----
 
-
-
-
-## Example Projects from the Portenta Course (for reference)
-
-List here  for future planning. Notes: This is not the final list for this course and maybe removed
-
-
-
-
-
-
----
 
 
 ---
