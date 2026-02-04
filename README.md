@@ -330,28 +330,6 @@ It is a bit to heavy to do all of these one after another.
 
 
 
-## Course Content Links
-
-
-| Link and Video | About    |
-|:---|:---|
-| [a00](README.md#a00) Introduction Video |  Intro from Jeremy |
-| [a01](README.md#a01) [Rocksetta Site](http://rocksetta.com) |  Early Web Computational Presentations by Jeremy <br> Good for ideas  |
-| [a01](README.md#a01) [Rocksetta Site](http://rocksetta.com)  | [a02](README.md#a02) [The 2024 Course Site curriculum](https://github.com/hpssjellis/maker100-eco)   |
-| [a03](README.md#a03) [Arduino IDE](https://www.arduino.cc/en/software) |  Download the Arduino IDE 1.8.19  or later for Windows, Mac or Linux |
-| [a04](README.md#a04)  [Installing the XIAO Board Manager ]( https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/#software-setup)  | Arduino Board Manager, search esp32, install v2.0.7 or later    |
-| [a05](README.md#a05) [Setup Arduino for the XIAO](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/#software-setup)   |   At Arduino tools board manager select  "XIAO_ESP32S3"  |
-| [a06](README.md#a06) [Install Edge Impulse CLI  ](https://docs.edgeimpulse.com/docs/tools/edge-impulse-cli/cli-installation)  | Optional: 3 ways to do TinyML with EdgeImpulse    |
-| [a07](README.md#a07) [CLI-Daemon connection](https://docs.edgeimpulse.com/docs/tools/edge-impulse-cli/cli-daemon) |  Connect the XIAO to EdgeImpulse using the Edge Impulse CLI    |
-| [a08](README.md#a08) [Examples on EdgeImpulse](https://edgeimpulse.com/account/projects/)   |  Public Projects   |
-| [a09](README.md#a09)  Setting up [Wokwi.com](https://wokwi.com)   |   Create an account, search for the XIAO-ESP32s3 PSRAM. Run the Program   |
-| [a10](README.md#a10) [General Help for Computer Science Students](https://github.com/hpssjellis/maker101)   |  Github site about main CS topics   |
-
-
-
-
-
----
 
 ---
 
