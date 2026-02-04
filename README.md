@@ -1,4 +1,4 @@
-## Maker100-xiaoML-kit   (Economy) Robotics, IoT and TinyML Machine Learning course is almost ready to be used!
+## Maker100-xiaoML-kit Robotics, IoT and TinyML Machine Learning course is ready!
 
 ## 2026 Version
 
