@@ -1,13 +1,12 @@
 #include "esp_camera.h"
 #include <Adafruit_SSD1327.h>
 
-// ================= CAMERA PINS =================
+// CAMERA PINS
 #define PWDN_GPIO_NUM     -1
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM     10
 #define SIOD_GPIO_NUM     40
 #define SIOC_GPIO_NUM     39
-
 #define Y9_GPIO_NUM       48
 #define Y8_GPIO_NUM       11
 #define Y7_GPIO_NUM       12
@@ -20,29 +19,28 @@
 #define HREF_GPIO_NUM     47
 #define PCLK_GPIO_NUM     13
 
-// ================= OLED =================
+// OLED PINS
 #define OLED_CS D7
 #define OLED_DC D6
 #define OLED_RESET -1
-#define OLED_WIDTH 128
-#define OLED_HEIGHT 128
 
-Adafruit_SSD1327 display(OLED_WIDTH, OLED_HEIGHT, &SPI, OLED_DC, OLED_RESET, OLED_CS);
+Adafruit_SSD1327 display(128, 128, &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
-// ================= SETUP =================
 void setup() {
   Serial.begin(115200);
 
   if (!display.begin(0x3D)) {
-    Serial.println("OLED init failed!");
-    while (1) yield();
+    Serial.println("OLED failed");
+    while (1);
   }
+
   display.clearDisplay();
   display.display();
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer   = LEDC_TIMER_0;
+
   config.pin_d0 = Y2_GPIO_NUM;
   config.pin_d1 = Y3_GPIO_NUM;
   config.pin_d2 = Y4_GPIO_NUM;
@@ -51,6 +49,7 @@ void setup() {
   config.pin_d5 = Y7_GPIO_NUM;
   config.pin_d6 = Y8_GPIO_NUM;
   config.pin_d7 = Y9_GPIO_NUM;
+
   config.pin_xclk = XCLK_GPIO_NUM;
   config.pin_pclk = PCLK_GPIO_NUM;
   config.pin_vsync = VSYNC_GPIO_NUM;
@@ -59,45 +58,49 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn  = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
+
   config.xclk_freq_hz = 20000000;
-  config.frame_size = FRAMESIZE_QQVGA;  // 160x120 for stable FPS
+  config.frame_size = FRAMESIZE_QQVGA;   // 160x120
   config.pixel_format = PIXFORMAT_GRAYSCALE;
-  config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
-  config.jpeg_quality = 12;
   config.fb_count = 1;
 
   if (esp_camera_init(&config) != ESP_OK) {
-    Serial.println("Camera init failed!");
-    while (1) yield();
+    Serial.println("Camera init failed");
+    while (1);
   }
 
   Serial.println("Camera ready!");
 }
 
-// ================= LOOP =================
 void loop() {
   camera_fb_t *fb = esp_camera_fb_get();
-  if (!fb) return;
+  if (!fb) {
+    Serial.println("Frame failed");
+    return;
+  }
 
   display.clearDisplay();
 
-  float scaleX = (float)OLED_WIDTH / fb->width;
-  float scaleY = (float)OLED_HEIGHT / fb->height;
+  int camW = fb->width;   // 160
+  int camH = fb->height;  // 120
+  uint8_t* buf = fb->buf;
 
-  for (int y = 0; y < fb->height; y++) {
-    int gy = y * scaleY;
-    for (int x = 0; x < fb->width; x++) {
-      int gx = x * scaleX;
-      uint8_t gray = fb->buf[y * fb->width + x];
-      display.drawPixel(gx, gy, gray >> 4);  // 0-255 → 0-15
+  // Display area: 128x96 to keep aspect ratio
+  int dispW = 128;
+  int dispH = 96;
+  int offsetY = (128 - dispH) / 2;
+
+  for (int y = 0; y < dispH; y++) {
+    for (int x = 0; x < dispW; x++) {
+      // Map OLED pixels to camera pixels
+      int srcX = x * camW / dispW;
+      int srcY = y * camH / dispH;
+      uint8_t gray = buf[srcY * camW + srcX];
+      display.drawPixel(x, y + offsetY, gray >> 4); // 0-15 grayscale
     }
   }
 
-  display.drawRect(0, 0, OLED_WIDTH, OLED_HEIGHT, SSD1327_WHITE);
   display.display();
-
   esp_camera_fb_return(fb);
-
-  delay(50); // ~20 FPS
 }
