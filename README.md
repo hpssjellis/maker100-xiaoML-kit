@@ -257,9 +257,9 @@ It is a bit to heavy to do all of these one after another.
 
 | Topic | Example Code| Video | Instructions |
 |:---|:---|:---|:---|
-| <a name="FP1" href="README.md#FP1">`FP1`</a>  One sensor with one actuator final project  |      |     |   [See Appendix I - Final Project 1](#appendix-i)  |
-| <a name="FP2" href="README.md#FP2">`FP2`</a>  complex sensor, ML, actuator final project  |      |     |   [See Appendix J - Final Project 2](#appendix-j)  |
-| <a name="FP3" href="README.md#FP3">`FP3`</a>  group final project, proof of concept for a viable product  |      |     |   [See Appendix K - Final Project 3](#appendix-k)  |
+| <a name="FP1" href="README.md#FP1">`FP1`</a>  One sensor with one actuator final project. Needed to be completed to pass the course!  |      |     |   [See Appendix I - Final Project 1](#appendix-i)  |
+| <a name="FP2" href="README.md#FP2">`FP2`</a>  complex sensor, ML, complex actuator and or IoT communication final project. This project needs to be completed to get an "A" in the course  |      |     |   [See Appendix J - Final Project 2](#appendix-j)  |
+| <a name="FP3" href="README.md#FP3">`FP3`</a>  group final project, proof of concept for a viable product or something fun and creative. Each person in the group brings a skill. Groups often organized by the teacher based on who has time and abilities. Group project is not needed, but typically brings a final grade up a few percentage points.   |      |     |   [See Appendix K - Final Project 3](#appendix-k)  |
 
 
 
