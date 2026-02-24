@@ -346,7 +346,7 @@ If you choose to use the expansion board this ebook [here](https://mjrovai.githu
 
 ## Appendix B: Teacher Tips - Teaching Guidelines and Best Practices
 
-1. Students work on term assignments in partners and make very short videos that teach what they did for each assignment.
+1. Students work on term assignments in partners and make very short videos that teach what they did for each assignment. Note: Students often learn much better when working on their own. Partnered groups typically move to one person coding and the other connecting the wires and neither person learns Robotics. Just be careful that groups no this concern. Final projects are individual, except the optional thrid final.
 2. I expect all students to try to improve and change each assignment. "Until you change computer code do not expect to understand it"
 3. MAKE EACH STUDENT DRAW THEIR OWN CIRCUIT DIAGRAM FOR EACH ASSIGNMENT. For easy assignments I make it hard for the students to know how to connect the wires. I only give students clear diagrams for the difficult connections. Let students think. These are not fully made recipes!
 4. For 2026 I will be using wokwi for diagrams. Students can look at the diagram but must still make their own drawing that they understand. (All connections labelled and perhaps include wire color)
