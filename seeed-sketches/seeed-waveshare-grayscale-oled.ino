@@ -11,11 +11,11 @@
 
  *  FOR the GRAYSCALE Waveshare OLED
  *   black GND 
- *   red 3v3  on Portenta must be 5V on XIAO esp32S3   
- *   blue  DIN (mosi) D8  // D10 on XIAO
- *   yellow (sck) D9      // D8 on XIAO
- *   orange (cs) D7
- *   green (dc)  D6
+ *   red 3v3  // on the XIAO esp32S3   
+ *   blue  DIN (mosi) // D10 on XIAO
+ *   yellow (sck)     // D8 on XIAO
+ *   orange (cs)      // D7
+ *   green (dc)       // D6
  *   white (reset) not needed but D14 if you did
  *
  * another reference here 
