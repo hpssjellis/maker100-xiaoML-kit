@@ -416,6 +416,12 @@ Very hard to compare the XIAO class set of 15 x $38.90 USD = $583.5 USD with a c
 
 Connect your cell phone to EdgeImpulse, take 30 images of pens on various backgrounds, then take 50 images of various backgrounds, create your impulse (96 x 96), generate features, train and then switch to classification on your cell phone
 
+
+
+****************   EdgeImpuls is made for an older board version of the Expressif Board the ESP32  ****************
+****************  IF THE CODE DOES NOT WORK, REMOVE THE ESP32 BOARD THEN RE-INSTALL BOARD 2.0.17  *****************
+**************** dO NOT UPDATE TO 2.0.17 IT WILL TIMEOUT, WORKS BETTER AFTER A FULL ESP32 BOARD REMOVE ************
+
 **ChatGPT Prompt:**
 
 Give me the steps to make a vision classification model on edgeimpulse.com with only an unknown label for the background and pens for the object. We will only be using our cell phone to collect the images, so it will need to be connected to the edgeimpulse site. The cell phone will allow the image labelling before I take the images. After the images are taken explain how to setup the impulse machine learning model.
