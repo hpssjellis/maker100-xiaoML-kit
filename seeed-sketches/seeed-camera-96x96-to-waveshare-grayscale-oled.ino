@@ -9,11 +9,16 @@
  *
 
 
+
+****************   EdgeImpuls is made for an older board version of the Expressif Board the ESP32  ****************
+****************  IF THE CODE DOES NOT WORK, REMOVE THE ESP32 BOARD THEN RE-INSTALL BOARD 2.0.17  *****************
+**************** dO NOT UPDATE TO 2.0.17 IT WILL TIMEOUT, WORKS BETTER AFTER A FULL ESP32 BOARD REMOVE ************
+
  *  FOR the GRAYSCALE Waveshare OLED
  *   black GND 
- *   red 3v3  on Portenta  must be 5V on XIAO esp32S3   
- *   blue  DIN (mosi) D8 on Portenta  // D10 on XIAO esp32S3 
- *   yellow (sck) D9 on Portenta     // D8 on XIAO esp32S3 
+ *   red 3v3   on XIAO esp32S3   
+ *   blue  DIN (mosi)  // D10 on XIAO esp32S3 
+ *   yellow (sck)   // D8 on XIAO esp32S3 
  *   orange (cs) D7
  *   green (dc)  D6
  *   white (reset) not needed but D14 if you did
