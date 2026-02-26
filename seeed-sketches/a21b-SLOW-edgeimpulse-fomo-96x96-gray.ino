@@ -67,7 +67,10 @@ typedef enum {
     PIXFORMAT_RGB555,    // 3BP2P/RGB555
 } pixformat_t;
 
-*
+
+****************   EdgeImpuls is made for an older board version of the Expressif Board the ESP32  ****************
+****************  IF THE CODE DOES NOT WORK, REMOVE THE ESP32 BOARD THEN RE-INSTALL BOARD 2.0.17  *****************
+**************** dO NOT UPDATE TO 2.0.17 IT WILL TIMEOUT, WORKS BETTER AFTER A FULL ESP32 BOARD REMOVE ************
 
 */
 
