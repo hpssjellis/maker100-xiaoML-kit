@@ -125,6 +125,7 @@ Also a cell phone or webCam to video the assignment when it is finished.
 |:---|:---|:---|:---|
 |  <a name="a13-OLED-hello" href="README.md#a13-OLED-hello">`a13-OLED-hello`</a>        |   The blink-serial-program for the XIAO ML Kit, says hello on the OLED  [xiaoML-kit/xiaoML-good-serial-blink-oled-digital-read.ino](https://github.com/hpssjellis/maker100-xiaoML-kit/blob/main/xiaoML-kit/xiaoML-good-serial-blink-oled-digital-read.ino)   |   If you have the XIAO ML Kit this is the best program to leave on the device after your have done your assignments. Then just plug it into power and you can see that the board works.    |  Careful with the OLED if you bend it too often the connection weakens  |
 |  <a name="a14-IMU-Motion" href="README.mda14-IMU-Motion">`a14-IMU-Motion`</a>        |  Basic x, y, z motion with the XIAO ML Kit [xiaoML-kit/xiaoML-6dof-imu-basics.ino](https://github.com/hpssjellis/maker100-xiaoML-kit/blob/main/xiaoML-kit/xiaoML-6dof-imu-basics.ino)   |  This would be a goo da ssignment to try to put the results onto the OLED. Presently only showing on the serial monitor.    |   |
+| No grade, try this with your XIAO ML kit    | [https://hpssjellis.github.io/xiaoml-kit-esp32-web-tool/public/index.html](https://hpssjellis.github.io/xiaoml-kit-esp32-web-tool/public/index.html)  | It flashes an exported binary to your device then reads the camera, mic and IMU all live.  |  Can also see and change the SD card.  |
 .
 
 
