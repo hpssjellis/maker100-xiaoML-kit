@@ -1,0 +1,253 @@
+// Motion Classification with LSM6DS3TR-C IMU + OLED Display
+#include <W7-8-esp32-accel-WORDS-both-better_inferencing.h>
+#include <LSM6DS3.h>
+#include <U8g2lib.h>
+#include <Wire.h>
+
+// IMU setup
+LSM6DS3 myIMU(I2C_MODE, 0x6A);
+
+// OLED setup - efficient 1-page buffer
+U8G2_SSD1306_72X40_ER_1_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
+
+// Inference settings
+#define CONVERT_G_TO_MS2    9.81f
+#define MAX_ACCEPTED_RANGE  2.0f * CONVERT_G_TO_MS2
+
+static bool debug_nn = false;
+static float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
+static float inference_buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE];
+
+// OLED display state
+String oled_label      = "Starting...";
+float  oled_confidence = 0.0f;
+bool   oled_anomaly    = false;
+float  oled_anomaly_score = 0.0f;
+bool   oled_uncertain  = false;
+
+// Display update timing
+unsigned long previousMillis = 0;
+const long    displayInterval = 200;  // ms between OLED refreshes
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+void ei_printf(const char *format, ...) {
+    static char print_buf[1024] = { 0 };
+    va_list args;
+    va_start(args, format);
+    int r = vsnprintf(print_buf, sizeof(print_buf), format, args);
+    va_end(args);
+    if (r > 0) Serial.write(print_buf);
+}
+
+// Draw current inference result on the 72×40 OLED
+void updateOLED() {
+    u8g2.firstPage();
+    do {
+        // ── Row 1: label (small font so long words fit) ──────────────────
+        u8g2.setFont(u8g2_font_ncenB08_tr);
+        u8g2.setCursor(0, 10);
+
+        // Truncate label to 10 chars so it never overflows 72 px
+        String displayLabel = oled_label;
+        if (displayLabel.length() > 10) displayLabel = displayLabel.substring(0, 10);
+        u8g2.print(displayLabel);
+
+        // ── Row 2: confidence % ──────────────────────────────────────────
+        u8g2.setFont(u8g2_font_ncenB14_tr);
+        u8g2.setCursor(0, 28);
+        u8g2.print(String((int)(oled_confidence * 100)) + "%");
+
+        // ── Row 3: status tag ────────────────────────────────────────────
+        u8g2.setFont(u8g2_font_ncenB08_tr);
+        u8g2.setCursor(0, 40);
+        if (oled_anomaly) {
+            u8g2.print("ANOMALY!");
+        } else if (oled_uncertain) {
+            u8g2.print("?uncertain");
+        } else {
+            u8g2.print("OK");
+        }
+
+    } while (u8g2.nextPage());
+}
+
+// ─── setup ──────────────────────────────────────────────────────────────────
+
+void setup() {
+    Serial.begin(115200);
+    while (!Serial) delay(10);
+
+    Serial.println("XIAOML Kit - Motion Classification");
+    Serial.println("LSM6DS3TR-C IMU Inference + OLED");
+
+    // Init OLED
+    u8g2.begin();
+    Serial.println("✓ Display initialized");
+
+    // Splash screen
+    u8g2.firstPage();
+    do {
+        u8g2.setFont(u8g2_font_ncenB08_tr);
+        u8g2.setCursor(0, 12);
+        u8g2.print("XIAOML");
+        u8g2.setCursor(0, 26);
+        u8g2.print("Motion");
+        u8g2.setCursor(0, 40);
+        u8g2.print("Classifier");
+    } while (u8g2.nextPage());
+    delay(1500);
+
+    // Init IMU
+    if (myIMU.begin() != 0) {
+        Serial.println("ERROR: IMU initialization failed!");
+        oled_label = "IMU ERR";
+        oled_confidence = 0.0f;
+        updateOLED();
+        return;
+    }
+    Serial.println("✓ IMU initialized");
+
+    if (EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME != 3) {
+        Serial.println("ERROR: EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME should be 3");
+        return;
+    }
+
+    Serial.println("✓ Model loaded");
+    Serial.println("Starting motion classification...");
+
+    oled_label = "Ready";
+    updateOLED();
+}
+
+// ─── loop ───────────────────────────────────────────────────────────────────
+
+void loop() {
+    unsigned long currentMillis = millis();
+
+    // ── Refresh OLED on its own timer ────────────────────────────────────
+    if (currentMillis - previousMillis >= displayInterval) {
+        previousMillis = currentMillis;
+        updateOLED();
+    }
+
+    // ── Inference cycle ──────────────────────────────────────────────────
+    ei_printf("\nStarting inferencing in 2 seconds...\n");
+
+    // Show "sampling" on OLED immediately
+    oled_label      = "Sampling";
+    oled_confidence = 0.0f;
+    oled_uncertain  = false;
+    oled_anomaly    = false;
+    updateOLED();
+
+    delay(2000);
+
+    ei_printf("Sampling...\n");
+
+    // Clear buffer
+    for (size_t i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i++) {
+        buffer[i] = 0.0f;
+    }
+
+    // Collect accelerometer data
+    for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i += 3) {
+        uint64_t next_tick = micros() + (EI_CLASSIFIER_INTERVAL_MS * 1000);
+
+        float x = myIMU.readFloatAccelX();
+        float y = myIMU.readFloatAccelY();
+        float z = myIMU.readFloatAccelZ();
+
+        buffer[i + 0] = x * CONVERT_G_TO_MS2;
+        buffer[i + 1] = y * CONVERT_G_TO_MS2;
+        buffer[i + 2] = z * CONVERT_G_TO_MS2;
+
+        for (int j = 0; j < 3; j++) {
+            if (fabs(buffer[i + j]) > MAX_ACCEPTED_RANGE) {
+                buffer[i + j] = copysign(MAX_ACCEPTED_RANGE, buffer[i + j]);
+            }
+        }
+
+        delayMicroseconds(next_tick - micros());
+    }
+
+    // Copy to inference buffer
+    for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i++) {
+        inference_buffer[i] = buffer[i];
+    }
+
+    // Create signal
+    signal_t signal;
+    int err = numpy::signal_from_buffer(inference_buffer,
+                                        EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE,
+                                        &signal);
+    if (err != 0) {
+        ei_printf("ERROR: Failed to create signal from buffer (%d)\n", err);
+        oled_label = "SigErr";
+        updateOLED();
+        return;
+    }
+
+    // Run classifier
+    ei_impulse_result_t result = { 0 };
+    err = run_classifier(&signal, &result, debug_nn);
+    if (err != EI_IMPULSE_OK) {
+        ei_printf("ERROR: Failed to run classifier (%d)\n", err);
+        oled_label = "ClsErr";
+        updateOLED();
+        return;
+    }
+
+    // ── Serial: timing + all scores ──────────────────────────────────────
+    ei_printf("Predictions (DSP: %d ms, Classification: %d ms, Anomaly: %d ms):\n",
+              result.timing.dsp,
+              result.timing.classification,
+              result.timing.anomaly);
+
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        ei_printf("    %s: %.5f\n",
+                  result.classification[ix].label,
+                  result.classification[ix].value);
+    }
+
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    ei_printf("Anomaly score: %.3f\n", result.anomaly);
+    oled_anomaly_score = result.anomaly;
+    oled_anomaly       = (result.anomaly > 0.5f);
+#endif
+
+    // ── Find top prediction ───────────────────────────────────────────────
+    float  max_confidence = 0.0f;
+    String predicted_class = "unknown";
+
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        if (result.classification[ix].value > max_confidence) {
+            max_confidence  = result.classification[ix].value;
+            predicted_class = String(result.classification[ix].label);
+        }
+    }
+
+    // ── Serial: human-readable result ────────────────────────────────────
+    if (max_confidence > 0.6f) {
+        ei_printf("\n PREDICTION: %s (%.1f%% confidence)\n",
+                  predicted_class.c_str(), max_confidence * 100);
+        oled_uncertain = false;
+    } else {
+        ei_printf("\n UNCERTAIN: Highest confidence is %s (%.1f%%)\n",
+                  predicted_class.c_str(), max_confidence * 100);
+        oled_uncertain = true;
+    }
+
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    if (result.anomaly > 0.5f) {
+        ei_printf(" ANOMALY DETECTED! Score: %.3f\n", result.anomaly);
+    }
+#endif
+
+    // ── Update OLED state & redraw immediately ────────────────────────────
+    oled_label      = predicted_class;
+    oled_confidence = max_confidence;
+    updateOLED();
+
+    delay(1000);
+}
