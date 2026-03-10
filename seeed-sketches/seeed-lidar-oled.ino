@@ -31,7 +31,7 @@ Also must install the vector  include library file Author: Peter Polidoro
 
  *  FOR the GRAYSCALE Waveshare OLED
  *   black GND 
- *   red 3v3  on Portenta must be 5V pin on ESP32   
+ *   red 3v3  on XIAO ESP32   
  *   blue  DIN (mosi)  // D10 on XIAO
  *   yellow (sck)      // D8 on XIAO
  *   orange (cs) D7    // used by lidar lets try D1
