@@ -13,8 +13,8 @@
  *   Upload seeed-i2c-2xiao-transmitter.ino to Arduino 2 
  *   Watch Serial Monitor on Arduino 1 receiver
 
- Note: If one of the I2C modules uses 5V  then you would need resistors to protect the XIAO
-research it but will need step down resistors beetween the pins
+ * Note: If one of the I2C modules uses 5V  then you would need resistors to protect the XIAO
+ * research it you will need resistors to protect the I2C pins 
 
 
  * 
