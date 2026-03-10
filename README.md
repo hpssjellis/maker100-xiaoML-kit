@@ -531,6 +531,25 @@ Above is useful information for using the XIAO camera, below are the actual pin 
 ## XIAO esp32s3-sense  Pinout Diagram
 
 
+## Safe Pins when the XIAOML Kit is fully connected and all items running
+
+| Pin Label | GPIO | Internal Usage / Hardware Conflict | Status |
+| :--- | :--- | :--- | :--- |
+| **D0 / A0** | GPIO 1 | None | ✅ SAFE |
+| **D1 / A1** | GPIO 2 | None | ✅ SAFE |
+| **D2 / A2** | GPIO 3 | Strapping Pin (Keep HIGH/Float at boot) | ✅ SAFE |
+| **D3 / A3** | GPIO 4 | None | ✅ SAFE |
+| **D4 / A4** | GPIO 5 | **I2C SDA** (IMU & OLED) | ⚠️ SHARED |
+| **D5 / A5** | GPIO 6 | **I2C SCL** (IMU & OLED) | ⚠️ SHARED |
+| **D6** | GPIO 43 | None (UART0 TX by default) | ✅ SAFE |
+| **D7** | GPIO 44 | None (UART0 RX by default) | ✅ SAFE |
+| **D8 / A8** | GPIO 7 | **SPI SCK** (SD Card) | ⚠️ SHARED |
+| **D9 / A9** | GPIO 8 | **SPI MISO** (SD Card) | ⚠️ SHARED |
+| **D10 / A10** | GPIO 9 | **SPI MOSI / CS** (SD Card & User LED) | ⚠️ SHARED |
+| **D11** | GPIO 41 | **PDM Mic Data** (Extra Camera Pin) | ⚠️ SHARED |
+| **D12** | GPIO 42 | **PDM Mic Clock** (Extra Camera Pin) | ⚠️ SHARED |
+
+
 <img width="1485" height="1255" alt="image" src="https://github.com/user-attachments/assets/dd1f4474-8a7d-4989-9bc9-74fa03fd6a21" />
    
 
