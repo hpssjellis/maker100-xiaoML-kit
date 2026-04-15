@@ -1,0 +1,145 @@
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <Adafruit_SSD1327.h>
+
+// XIAO ESP32S3 Camera Pins
+#define PWDN_GPIO_NUM     -1
+#define RESET_GPIO_NUM    -1
+#define XCLK_GPIO_NUM     10
+#define SIOD_GPIO_NUM     40
+#define SIOC_GPIO_NUM     39
+#define Y9_GPIO_NUM       48
+#define Y8_GPIO_NUM       11
+#define Y7_GPIO_NUM       12
+#define Y6_GPIO_NUM       14
+#define Y5_GPIO_NUM       16
+#define Y4_GPIO_NUM       18
+#define Y3_GPIO_NUM       17
+#define Y2_GPIO_NUM       15
+#define VSYNC_GPIO_NUM    38
+#define HREF_GPIO_NUM     47
+#define PCLK_GPIO_NUM     13
+
+// OLED Pins (XIAO)
+#define OLED_CLK D8     
+#define OLED_MOSI D10   
+#define OLED_CS D7
+#define OLED_DC D6
+#define OLED_RESET -1
+
+Adafruit_SSD1327 myDisplay(128, 128, &SPI, OLED_DC, OLED_RESET, OLED_CS);
+
+const int myTriggerPin = A0; 
+int myImageCounter = 0;
+bool myCameraReady = false;
+bool mySdReady = false;
+
+// Buffer to store the 128x128 grayscale data for saving
+uint8_t myGrayBuffer[128 * 128]; 
+
+void mySaveGrayscaleToSd(const char * myPath) {
+  File myFile = SD.open(myPath, FILE_WRITE);
+  if (!myFile) {
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+  
+  // Save the raw grayscale buffer (1 byte per pixel)
+  size_t myBytesWritten = myFile.write(myGrayBuffer, sizeof(myGrayBuffer));
+  
+  if (myBytesWritten == sizeof(myGrayBuffer)) {
+    Serial.printf("Grayscale data saved: %s\n", myPath);
+  } else {
+    Serial.println("Write failed or incomplete");
+  }
+  myFile.close();
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(myTriggerPin, INPUT);
+  
+  // Initialize OLED
+  if (!myDisplay.begin(0x3D)) {
+     Serial.println("OLED init failed");
+  } else {
+    myDisplay.setTextSize(1);
+    myDisplay.setTextColor(SSD1327_WHITE);
+  }
+
+  // Camera Config for Grayscale
+  camera_config_t myConfig;
+  myConfig.ledc_channel = LEDC_CHANNEL_0;
+  myConfig.ledc_timer = LEDC_TIMER_0;
+  myConfig.pin_d0 = Y2_GPIO_NUM;
+  myConfig.pin_d1 = Y3_GPIO_NUM;
+  myConfig.pin_d2 = Y4_GPIO_NUM;
+  myConfig.pin_d3 = Y5_GPIO_NUM;
+  myConfig.pin_d4 = Y6_GPIO_NUM;
+  myConfig.pin_d5 = Y7_GPIO_NUM;
+  myConfig.pin_d6 = Y8_GPIO_NUM;
+  myConfig.pin_d7 = Y9_GPIO_NUM;
+  myConfig.pin_xclk = XCLK_GPIO_NUM;
+  myConfig.pin_pclk = PCLK_GPIO_NUM;
+  myConfig.pin_vsync = VSYNC_GPIO_NUM;
+  myConfig.pin_href = HREF_GPIO_NUM;
+  myConfig.pin_sscb_sda = SIOD_GPIO_NUM;
+  myConfig.pin_sscb_scl = SIOC_GPIO_NUM;
+  myConfig.pin_pwdn = PWDN_GPIO_NUM;
+  myConfig.pin_reset = RESET_GPIO_NUM;
+  myConfig.xclk_freq_hz = 20000000;
+  myConfig.frame_size = FRAMESIZE_240X240;
+  myConfig.pixel_format = PIXFORMAT_GRAYSCALE; 
+  myConfig.grab_mode = CAMERA_GRAB_WHEN_EMPTY; 
+  myConfig.fb_location = CAMERA_FB_IN_PSRAM; 
+  myConfig.fb_count = 2; 
+
+  esp_err_t myErr = esp_camera_init(&myConfig);
+  if (myErr == ESP_OK) myCameraReady = true;
+
+  if (SD.begin(21)) mySdReady = true;
+}
+
+void loop() {
+  myDisplay.clearDisplay();
+  
+  camera_fb_t * myFb = esp_camera_fb_get();
+  if (myFb) {
+    uint8_t* myRawBuf = myFb->buf;
+    
+    // Process the 240x240 camera image down to 128x128 display
+    for (int myX = 0; myX < 240; myX++) {
+      for (int myY = 0; myY < 240; myY++) {
+        uint8_t myGrayVal = myRawBuf[(myY * 240) + myX];
+        
+        // Map camera pixels to OLED coordinates
+        int myXMap = map(myX, 0, 240, 0, 127); 
+        int myYMap = map(myY, 0, 240, 0, 127); 
+        
+        // Map 0-255 grayscale to 0-15 OLED levels
+        int myOledGray = map(myGrayVal, 0, 255, 0, 15);
+        
+        myDisplay.drawPixel(myXMap, myYMap, myOledGray); 
+        
+        // Store the value in our local buffer for SD saving
+        // This ensures we save what is actually being shown
+        myGrayBuffer[(myYMap * 128) + myXMap] = (uint8_t)myGrayVal;
+      }
+    }
+    
+    // Check if A0 is High to save the CURRENT screen data
+    // (A0 JPEG saving from previous version is now commented out/replaced)
+    if (digitalRead(myTriggerPin) == HIGH && mySdReady) {
+      char myFileName[32];
+      sprintf(myFileName, "/gray_%d.raw", myImageCounter);
+      mySaveGrayscaleToSd(myFileName);
+      myImageCounter++;
+      delay(1000); 
+    }
+
+    myDisplay.display();
+    esp_camera_fb_return(myFb);
+  }
+}
