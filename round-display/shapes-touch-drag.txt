@@ -1,0 +1,78 @@
+#include <Arduino.h>
+#include <TFT_eSPI.h>
+#include <Wire.h>
+
+#define myScreenWidth  240
+#define myScreenHeight 240
+#define myTouchInt     D7
+#define myTouchI2C     0x2e
+
+TFT_eSPI myTft = TFT_eSPI();
+TFT_eSprite myCanvas = TFT_eSprite(&myTft);
+
+// ---- Rectangle Position Variables ----
+int32_t myRectX = 100; 
+int32_t myRectY = 100;
+int32_t myTouchX = 0, myTouchY = 0;
+bool myIsTouching = false;
+
+bool myCheckTouch() {
+  if (digitalRead(myTouchInt) != LOW) return false;
+
+  Wire.requestFrom(myTouchI2C, 5);
+  uint8_t myBuf[5];
+  for (int i = 0; i < 5; i++) myBuf[i] = Wire.read();
+
+  if (myBuf[0] == 0x01) {
+    // Corrected coordinate mapping for the round display
+    myTouchX = myScreenWidth - myBuf[4];
+    myTouchY = myBuf[2];
+     
+    // myTouchX = myBuf[4];   // other rotation 
+    // myTouchY = myScreenHeight - myBuf[2]; // other rotation 
+    return true;
+  }
+  return false;
+}
+
+void setup() {
+  myTft.init();
+  // Changed rotation from 1 to 3 to flip the "Hello" text
+  myTft.setRotation(3); 
+  
+  myCanvas.setColorDepth(16);
+  myCanvas.createSprite(myScreenWidth, myScreenHeight);
+
+  pinMode(myTouchInt, INPUT_PULLUP);
+  Wire.begin();
+}
+
+void loop() {
+  myIsTouching = myCheckTouch();
+
+  // If touching, update the rectangle's permanent position
+  if (myIsTouching) {
+    myRectX = myTouchX - 20; 
+    myRectY = myTouchY - 20;
+  }
+
+  myCanvas.fillSprite(TFT_BLACK);
+
+  // 1. "Hello" (Now oriented correctly)
+  myCanvas.setTextColor(TFT_WHITE);
+  myCanvas.drawString("Hello", 80, 110, 4);
+
+  // 2. Random circle
+  myCanvas.drawCircle(100, 100, 10, myTft.color565(random(255), random(255), random(255)) );
+
+  // 3. One pixel
+  myCanvas.drawPixel(random(240), random(240), TFT_YELLOW );
+
+  // 4. One line
+  myCanvas.drawLine(20, 20, 140, 40, TFT_GREEN);
+
+  // 5. Draggable Rectangle (Stays where you drop it)
+  myCanvas.drawRect(myRectX, myRectY, 40, 40, TFT_CYAN);
+
+  myCanvas.pushSprite(0, 0);
+}
