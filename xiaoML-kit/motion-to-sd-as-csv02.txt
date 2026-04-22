@@ -1,0 +1,83 @@
+#include <LSM6DS3.h>
+#include <Wire.h>
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+
+LSM6DS3 myIMU(I2C_MODE, 0x6A);
+
+const int TRIGGER_PIN = A0; 
+const int THRESHOLD = 700;
+int sessionID = 0;   // The random 4-digit prefix
+int fileCounter = 1; // The incrementing counter
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize IMU
+  if (myIMU.begin() != 0) {
+    Serial.println("IMU fail");
+    while (1);
+  }
+
+  // Initialize SD
+  if (!SD.begin(21)) {
+    Serial.println("SD fail");
+    while (1);
+  }
+
+  // Generate a random 4-digit number (1000 - 9999)
+  randomSeed(analogRead(A1)); // Seed using noise from an unconnected pin
+  sessionID = random(1000, 10000);
+
+  Serial.print("System Ready. Session ID: ");
+  Serial.println(sessionID);
+  Serial.printf("Pull A0 above %d to record.\n", THRESHOLD);
+}
+
+void recordBurst() {
+  char filename[32];
+  // Format: /6542_1.csv, /6542_2.csv, etc.
+  sprintf(filename, "/%d_%d.csv", sessionID, fileCounter++);
+  
+  File file = SD.open(filename, FILE_WRITE);
+  if (!file) {
+    Serial.println("File open error");
+    return;
+  }
+
+  // Header for Edge Impulse
+  file.println("timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ");
+  
+  Serial.printf("Recording to %s... ", filename);
+  
+  unsigned long startTime = millis();
+  // Record for exactly 1000ms
+  while (millis() - startTime < 1000) {
+    file.print(millis() - startTime);
+    file.print(",");
+    file.print(myIMU.readFloatAccelX(), 4); file.print(",");
+    file.print(myIMU.readFloatAccelY(), 4); file.print(",");
+    file.print(myIMU.readFloatAccelZ(), 4); file.print(",");
+    file.print(myIMU.readFloatGyroX(), 2); file.print(",");
+    file.print(myIMU.readFloatGyroY(), 2); file.print(",");
+    file.println(myIMU.readFloatGyroZ(), 2);
+    
+    delay(10); // 100Hz
+  }
+
+  file.close();
+  Serial.println("Done.");
+  
+  // Cooldown to prevent multiple triggers from one "press"
+  delay(1000); 
+}
+
+void loop() {
+  // Read analog value (0 - 4095)
+  int val = analogRead(TRIGGER_PIN);
+  
+  if (val > THRESHOLD) {
+    recordBurst();
+  }
+}
