@@ -121,8 +121,16 @@ bool myCheckTouch() {
 // ---- Setup ----
 void setup() {
   Serial.begin(115200);
+  delay(3000);
+  Serial.printf("Start");
+  Serial.printf("Free PSRAM: %u bytes\n", ESP.getFreePsram());
+  Serial.printf("Free heap:  %u bytes\n", ESP.getFreeHeap());
 
   myTft.init();
+
+  Serial.printf("After Init");
+  Serial.printf("Free PSRAM: %u bytes\n", ESP.getFreePsram());
+  Serial.printf("Free heap:  %u bytes\n", ESP.getFreeHeap());
 
   // ---- IMPORTANT FIXES ----
   myTft.setRotation(1);     // try 0–3 if needed
@@ -134,7 +142,15 @@ void setup() {
   pinMode(myTouchInt, INPUT_PULLUP);
   Wire.begin();
 
+  Serial.printf("After Wire Begin");
+  Serial.printf("Free PSRAM: %u bytes\n", ESP.getFreePsram());
+  Serial.printf("Free heap:  %u bytes\n", ESP.getFreeHeap());
+
   myInitCamera();
+
+  Serial.printf("After Camera Init");
+  Serial.printf("Free PSRAM: %u bytes\n", ESP.getFreePsram());
+  Serial.printf("Free heap:  %u bytes\n", ESP.getFreeHeap());
 }
 
 // ---- Main Loop ----
