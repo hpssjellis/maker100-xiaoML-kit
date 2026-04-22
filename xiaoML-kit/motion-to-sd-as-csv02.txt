@@ -7,12 +7,13 @@
 LSM6DS3 myIMU(I2C_MODE, 0x6A);
 
 const int TRIGGER_PIN = A0; 
-const int THRESHOLD = 700;
+const int THRESHOLD = 1200;
 int sessionID = 0;   // The random 4-digit prefix
 int fileCounter = 1; // The incrementing counter
 
 void setup() {
   Serial.begin(115200);
+  pinMode(TRIGGER_PIN, PULLDOWN);
   
   // Initialize IMU
   if (myIMU.begin() != 0) {
@@ -27,7 +28,7 @@ void setup() {
   }
 
   // Generate a random 4-digit number (1000 - 9999)
-  randomSeed(analogRead(A1)); // Seed using noise from an unconnected pin
+  randomSeed(analogRead(A0)); // Seed using noise from an unconnected pin
   sessionID = random(1000, 10000);
 
   Serial.print("System Ready. Session ID: ");
@@ -78,6 +79,7 @@ void loop() {
   int val = analogRead(TRIGGER_PIN);
   
   if (val > THRESHOLD) {
+    Serial.println("A1:" + String(val));
     recordBurst();
   }
 }
