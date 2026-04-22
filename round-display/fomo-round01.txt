@@ -1,0 +1,200 @@
+#include <Arduino.h>
+#include <TFT_eSPI.h>
+#include <SPI.h>
+#include <Wire.h>
+#include "esp_camera.h"
+
+// ---- Edge Impulse ----
+// Replace with your specific library name:
+#include <ei-v35-fomo-eyes-96-96-esp32_inferencing.h>
+#include "edge-impulse-sdk/dsp/image/image.hpp"
+
+// ---- Inference Throttle ----
+#define myInferenceInterval 10  // Run EI every N frames
+
+// ---- Screen Setup ----
+#define myScreenWidth  240
+#define myScreenHeight 240
+#define myTouchInt     D7
+#define myTouchI2C     0x2e
+
+TFT_eSPI    myTft  = TFT_eSPI();
+TFT_eSprite myFace = TFT_eSprite(&myTft);
+
+// ---- Global State ----
+int32_t myTouchX = 0, myTouchY = 0;
+bool    myIsTouching  = false;
+int     myFrameCount  = 0;
+
+// ---- AI Buffer ----
+uint8_t *snapshot_buf;
+
+// ---- Last FOMO Result (persists across frames) ----
+ei_impulse_result_t myLastResult = { 0 };
+
+// ---- Camera Pins (XIAO ESP32S3 Sense) ----
+#define myPwdn  -1
+#define myReset -1
+#define myXclk  10
+#define mySiod  40
+#define mySioc  39
+#define myY9    48
+#define myY8    11
+#define myY7    12
+#define myY6    14
+#define myY5    16
+#define myY4    18
+#define myY3    17
+#define myY2    15
+#define myVsync 38
+#define myHref  47
+#define myPclk  13
+
+// ---- Edge Impulse Data Provider ----
+static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr) {
+    size_t pixel_ix   = offset * 3;
+    size_t pixels_left = length;
+    size_t out_ptr_ix  = 0;
+    while (pixels_left != 0) {
+        out_ptr[out_ptr_ix] = (snapshot_buf[pixel_ix]     << 16)
+                            + (snapshot_buf[pixel_ix + 1] <<  8)
+                            +  snapshot_buf[pixel_ix + 2];
+        out_ptr_ix++;
+        pixel_ix += 3;
+        pixels_left--;
+    }
+    return 0;
+}
+
+// ---- Camera Init ----
+void myInitCamera() {
+    camera_config_t myConfig;
+    myConfig.ledc_channel  = LEDC_CHANNEL_0;
+    myConfig.ledc_timer    = LEDC_TIMER_0;
+    myConfig.pin_d0        = myY2;
+    myConfig.pin_d1        = myY3;
+    myConfig.pin_d2        = myY4;
+    myConfig.pin_d3        = myY5;
+    myConfig.pin_d4        = myY6;
+    myConfig.pin_d5        = myY7;
+    myConfig.pin_d6        = myY8;
+    myConfig.pin_d7        = myY9;
+    myConfig.pin_xclk      = myXclk;
+    myConfig.pin_pclk      = myPclk;
+    myConfig.pin_vsync     = myVsync;
+    myConfig.pin_href      = myHref;
+    myConfig.pin_sscb_sda  = mySiod;
+    myConfig.pin_sscb_scl  = mySioc;
+    myConfig.pin_pwdn      = myPwdn;
+    myConfig.pin_reset     = myReset;
+    myConfig.xclk_freq_hz  = 20000000;
+    myConfig.pixel_format  = PIXFORMAT_RGB565;
+    myConfig.frame_size    = FRAMESIZE_240X240;
+    myConfig.fb_count      = 2;
+    myConfig.fb_location   = CAMERA_FB_IN_PSRAM;   // needed for snapshot_buf
+    myConfig.grab_mode     = CAMERA_GRAB_WHEN_EMPTY;
+
+    if (esp_camera_init(&myConfig) != ESP_OK) {
+        Serial.println("Camera init failed");
+        return;
+    }
+
+    sensor_t *mySensor = esp_camera_sensor_get();
+    if (mySensor) {
+        mySensor->set_hmirror(mySensor, 0);
+        mySensor->set_vflip(mySensor, 0);
+        mySensor->set_brightness(mySensor, 1);
+        mySensor->set_contrast(mySensor, 1);
+        mySensor->set_saturation(mySensor, 1);
+        mySensor->set_whitebal(mySensor, 1);
+        mySensor->set_awb_gain(mySensor, 1);
+        mySensor->set_wb_mode(mySensor, 0);
+    }
+}
+
+// ---- Touch ----
+bool myCheckTouch() {
+    if (digitalRead(myTouchInt) != LOW) return false;
+    Wire.beginTransmission(myTouchI2C);
+    if (Wire.endTransmission() != 0) return false;
+    uint8_t myBuf[5];
+    Wire.requestFrom(myTouchI2C, 5);
+    for (int i = 0; i < 5; i++) myBuf[i] = Wire.read();
+    if (myBuf[0] == 0x01) {
+        myTouchX = myBuf[2];
+        myTouchY = myScreenHeight - myBuf[4];
+        return true;
+    }
+    return false;
+}
+
+// ---- Setup ----
+void setup() {
+    Serial.begin(115200);
+
+    myTft.init();
+    myTft.setRotation(1);
+    myTft.setSwapBytes(true);
+
+    myFace.setColorDepth(16);
+    myFace.createSprite(myScreenWidth, myScreenHeight);
+
+    pinMode(myTouchInt, INPUT_PULLUP);
+    Wire.begin();
+
+    myInitCamera();
+
+    snapshot_buf = (uint8_t*)ps_malloc(myScreenWidth * myScreenHeight * 3);
+    if (!snapshot_buf) Serial.println("PSRAM allocation failed — inference disabled");
+}
+
+// ---- Main Loop ----
+void loop() {
+    myIsTouching = myCheckTouch();
+    myFrameCount++;
+
+    camera_fb_t *myFrame = esp_camera_fb_get();
+    if (!myFrame) return;
+
+    // ---- Run inference every myInferenceInterval frames ----
+    if (snapshot_buf && (myFrameCount % myInferenceInterval == 0)) {
+        fmt2rgb888(myFrame->buf, myFrame->len, PIXFORMAT_RGB565, snapshot_buf);
+
+        ei::signal_t signal;
+        signal.total_length = EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT;
+        signal.get_data     = &ei_camera_get_data;
+
+        EI_IMPULSE_ERROR err = run_classifier(&signal, &myLastResult, false);
+        if (err != EI_IMPULSE_OK) {
+            Serial.printf("Classifier error: %d\n", err);
+        }
+    }
+
+    // ---- Copy live frame to sprite ----
+    memcpy(myFace.getPointer(), myFrame->buf, myFrame->len);
+    esp_camera_fb_return(myFrame);
+
+    // ---- Overlay persisted FOMO bounding boxes ----
+    for (size_t ix = 0; ix < myLastResult.bounding_boxes_count; ix++) {
+        auto bb = myLastResult.bounding_boxes[ix];
+        if (bb.value > 0.5) {
+            int x = map(bb.x,      0, EI_CLASSIFIER_INPUT_WIDTH,  0, myScreenWidth);
+            int y = map(bb.y,      0, EI_CLASSIFIER_INPUT_HEIGHT, 0, myScreenHeight);
+            int w = map(bb.width,  0, EI_CLASSIFIER_INPUT_WIDTH,  0, myScreenWidth);
+            int h = map(bb.height, 0, EI_CLASSIFIER_INPUT_HEIGHT, 0, myScreenHeight);
+            myFace.drawRect(x, y, w, h, TFT_GREEN);
+            myFace.setCursor(x, max(0, y - 12));
+            myFace.setTextColor(TFT_WHITE, TFT_BLACK);  // bg colour prevents ghost text
+            myFace.print(bb.label);
+        }
+    }
+
+    // ---- Touch overlay ----
+    if (myIsTouching) {
+        myFace.drawCircle(myTouchX, myTouchY, 20, TFT_WHITE);
+        myFace.fillCircle(myTouchX, myTouchY, 3, TFT_CYAN);
+    }
+
+    // ---- Push to display ----
+    myFace.pushSprite(0, 0);
+}
