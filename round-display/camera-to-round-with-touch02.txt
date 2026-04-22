@@ -139,24 +139,66 @@ void setup() {
 
 // ---- Main Loop ----
 void loop() {
+    myIsTouching = myCheckTouch();
+    myFrameCount++;
 
-  myIsTouching = myCheckTouch();
+    bool doInference = snapshot_buf && (myFrameCount % myInferenceInterval == 0);
 
-  camera_fb_t *myFrame = esp_camera_fb_get();
+    // ---- Inference frame: copy out and release fb BEFORE classifying ----
+    if (doInference) {
+        camera_fb_t *myFrame = esp_camera_fb_get();
+        if (!myFrame) return;
 
-  if (!myFrame) return;
+        // Copy RGB888 into snapshot_buf, then FREE the framebuffer immediately
+        fmt2rgb888(myFrame->buf, myFrame->len, PIXFORMAT_RGB565, snapshot_buf);
+        esp_camera_fb_return(myFrame);  // <-- freed before EI runs
 
-  // ---- Direct copy (NO manual byte swapping) ----
-  memcpy(myFace.getPointer(), myFrame->buf, myFrame->len);
+        ei::signal_t signal;
+        signal.total_length = EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT;
+        signal.get_data     = &ei_camera_get_data;
 
-  esp_camera_fb_return(myFrame);
+        EI_IMPULSE_ERROR err = run_classifier(&signal, &myLastResult, false);
+        if (err != EI_IMPULSE_OK) {
+            Serial.printf("Classifier error: %d\n", err);
+        } else {
+            // Serial output of results
+            Serial.printf("--- Frame %d inference ---\n", myFrameCount);
+            for (size_t ix = 0; ix < myLastResult.bounding_boxes_count; ix++) {
+                auto bb = myLastResult.bounding_boxes[ix];
+                if (bb.value > 0.5) {
+                    Serial.printf("  [%s] conf=%.2f x=%u y=%u w=%u h=%u\n",
+                        bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
+                }
+            }
+        }
+    }
 
-  // ---- Draw overlay ----
-  if (myIsTouching) {
-    myFace.drawCircle(myTouchX, myTouchY, 20, TFT_WHITE);
-    myFace.fillCircle(myTouchX, myTouchY, 3, TFT_CYAN);
-  }
+    // ---- Every frame: grab fb, push display, draw overlays ----
+    camera_fb_t *myFrame = esp_camera_fb_get();
+    if (!myFrame) return;
 
-  // ---- Push to display ----
-  myFace.pushSprite(0, 0);
+    memcpy(myFace.getPointer(), myFrame->buf, myFrame->len);
+    esp_camera_fb_return(myFrame);  // freed before overlay drawing
+
+    // Persisted FOMO boxes
+    for (size_t ix = 0; ix < myLastResult.bounding_boxes_count; ix++) {
+        auto bb = myLastResult.bounding_boxes[ix];
+        if (bb.value > 0.5) {
+            int x = map(bb.x,     0, EI_CLASSIFIER_INPUT_WIDTH,  0, myScreenWidth);
+            int y = map(bb.y,     0, EI_CLASSIFIER_INPUT_HEIGHT, 0, myScreenHeight);
+            int w = map(bb.width, 0, EI_CLASSIFIER_INPUT_WIDTH,  0, myScreenWidth);
+            int h = map(bb.height,0, EI_CLASSIFIER_INPUT_HEIGHT, 0, myScreenHeight);
+            myFace.drawRect(x, y, w, h, TFT_GREEN);
+            myFace.setCursor(x, max(0, y - 12));
+            myFace.setTextColor(TFT_WHITE, TFT_BLACK);
+            myFace.print(bb.label);
+        }
+    }
+
+    if (myIsTouching) {
+        myFace.drawCircle(myTouchX, myTouchY, 20, TFT_WHITE);
+        myFace.fillCircle(myTouchX, myTouchY, 3, TFT_CYAN);
+    }
+
+    myFace.pushSprite(0, 0);
 }
