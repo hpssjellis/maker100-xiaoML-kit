@@ -77,12 +77,13 @@ Video showing how to setup the XiaoEsp32s3. There are also lots of other instruc
 
 # Steps:
 
-1. For many assignments first compile and upload the C++/C code (Arduino Sketch)
-2. Unplug your device.
-3. Then have a classmate or teacher check your hand drawn named circuit diagram before connecting any wires.
-4. When Diagram OK, wire up the device and have it checked again before copnnecting ANY power (Battery and or USB-C power)
-5. Check serial monitor if applicable
-6. Make a very short video that shows, your names(s), circuit diagram, the board, serial monitor as proof of it working. 
+1. look at the github code and hand write a short pseudocode explanation (New 2026 to combat going to an LLM first instead of looking at the code)
+2. For many assignments first compile and upload the C++/C code (Arduino Sketch)
+3. Unplug your device.
+4. Then have a classmate or teacher check your hand drawn named circuit diagram before connecting any wires.
+5. When Diagram OK, wire up the device and have it checked again before connecting ANY power (Battery and or USB-C power)
+6. Check serial monitor if applicable
+7. Make a very short video that shows, your names(s), circuit diagram, the board, serial monitor as proof of it working. 
 
 -------------------------------------------------------------------------------------------------------------
 
