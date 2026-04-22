@@ -1,0 +1,146 @@
+
+
+#include <Arduino.h>
+#include <TFT_eSPI.h>
+#include <SPI.h>
+#include <Wire.h>
+#include "esp_camera.h"
+
+// Replace this with your specific Edge Impulse library name
+//#include <ei-v68-96x96-rgb-FOMO-bigeye_inferencing.h>
+#include <ei-v35-fomo-eyes-96-96-esp32_inferencing.h>
+#include "edge-impulse-sdk/dsp/image/image.hpp"
+
+// ---- Screen Setup ----
+#define myScreenWidth  240
+#define myScreenHeight 240
+#define myTouchInt     D7
+#define myTouchI2C     0x2e
+
+TFT_eSPI    myTft  = TFT_eSPI();
+TFT_eSprite myFace = TFT_eSprite(&myTft);
+
+// ---- AI Buffers ----
+uint8_t *snapshot_buf; // Buffer for RGB888 conversion 
+
+// ---- Camera Pins (XIAO ESP32S3 Sense) 
+#define myPwdn  -1
+#define myReset -1
+#define myXclk  10
+#define mySiod  40
+#define mySioc  39
+#define myY9    48
+#define myY8    11
+#define myY7    12
+#define myY6    14
+#define myY5    16
+#define myY4    18
+#define myY3    17
+#define myY2    15
+#define myVsync 38
+#define myHref  47
+#define myPclk  13
+
+// ---- Edge Impulse Data Provider ----
+static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr) {
+    size_t pixel_ix = offset * 3;
+    size_t pixels_left = length;
+    size_t out_ptr_ix = 0;
+
+    while (pixels_left != 0) {
+        out_ptr[out_ptr_ix] = (snapshot_buf[pixel_ix] << 16) + (snapshot_buf[pixel_ix + 1] << 8) + snapshot_buf[pixel_ix + 2];
+        out_ptr_ix++;
+        pixel_ix += 3;
+        pixels_left--;
+    }
+    return 0; 
+}
+
+void myInitCamera() {
+    camera_config_t myConfig;
+    myConfig.ledc_channel = LEDC_CHANNEL_0; 
+    myConfig.ledc_timer   = LEDC_TIMER_0;
+    myConfig.pin_d0 = myY2; 
+    myConfig.pin_d1 = myY3;
+    myConfig.pin_d2 = myY4;
+    myConfig.pin_d3 = myY5;
+    myConfig.pin_d4 = myY6;
+    myConfig.pin_d5 = myY7;
+    myConfig.pin_d6 = myY8;
+    myConfig.pin_d7 = myY9;
+    myConfig.pin_xclk = myXclk;
+    myConfig.pin_pclk = myPclk;
+    myConfig.pin_vsync = myVsync; 
+    myConfig.pin_href = myHref;
+    myConfig.pin_sscb_sda = mySiod;
+    myConfig.pin_sscb_scl = mySioc;
+    myConfig.pin_pwdn = myPwdn;
+    myConfig.pin_reset = myReset;
+    myConfig.xclk_freq_hz = 20000000; 
+    myConfig.pixel_format = PIXFORMAT_RGB565; // Best for round display
+    myConfig.frame_size = FRAMESIZE_240X240;
+    myConfig.fb_count = 2;
+    myConfig.fb_location = CAMERA_FB_IN_PSRAM; 
+    myConfig.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+
+    if (esp_camera_init(&myConfig) != ESP_OK) {
+        Serial.println("Camera init failed");
+        return;
+    } 
+}
+
+void setup() {
+    Serial.begin(115200);
+    myTft.init();
+    myTft.setRotation(1); 
+    myTft.setSwapBytes(true);
+
+    myFace.setColorDepth(16);
+    myFace.createSprite(myScreenWidth, myScreenHeight); 
+
+    myInitCamera();
+
+    // Allocate memory for AI processing in PSRAM 
+    snapshot_buf = (uint8_t*)ps_malloc(myScreenWidth * myScreenHeight * 3);
+    if (!snapshot_buf) Serial.println("PSRAM Allocation Failed");
+}
+
+void loop() {
+    camera_fb_t *myFrame = esp_camera_fb_get(); 
+    if (!myFrame) return;
+
+    // 1. Convert Frame for Edge Impulse (RGB888)
+    fmt2rgb888(myFrame->buf, myFrame->len, PIXFORMAT_RGB565, snapshot_buf);
+
+    // 2. Run Inference
+    ei::signal_t signal;
+    signal.total_length = EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT;
+    signal.get_data = &ei_camera_get_data; 
+
+    ei_impulse_result_t result = { 0 };
+    EI_IMPULSE_ERROR err = run_classifier(&signal, &result, false); 
+
+    // 3. Prepare Display Sprite
+    memcpy(myFace.getPointer(), myFrame->buf, myFrame->len); 
+
+    // 4. Draw FOMO Bounding Boxes
+    for (size_t ix = 0; ix < result.bounding_boxes_count; ix++) {
+        auto bb = result.bounding_boxes[ix];
+        if (bb.value > 0.5) { // Confidence threshold
+            // Map FOMO coordinates (96x96) to screen (240x240) 
+            int x = map(bb.x, 0, EI_CLASSIFIER_INPUT_WIDTH, 0, myScreenWidth);
+            int y = map(bb.y, 0, EI_CLASSIFIER_INPUT_HEIGHT, 0, myScreenHeight);
+            int w = map(bb.width, 0, EI_CLASSIFIER_INPUT_WIDTH, 0, myScreenWidth);
+            int h = map(bb.height, 0, EI_CLASSIFIER_INPUT_HEIGHT, 0, myScreenHeight);
+
+            myFace.drawRect(x, y, w, h, TFT_GREEN);
+            myFace.setCursor(x, y - 12);
+            myFace.setTextColor(TFT_WHITE);
+            myFace.print(bb.label);
+        }
+    }
+
+    // 5. Final Push to Screen
+    myFace.pushSprite(0, 0); 
+    esp_camera_fb_return(myFrame);
+}
