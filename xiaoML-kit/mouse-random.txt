@@ -1,0 +1,29 @@
+include "USB.h"
+#include "USBHIDMouse.h"
+
+USBHIDMouse Mouse;
+
+void setup() {
+// 1. Safety Delay: Gives you time to upload new code if things go crazy
+delay(5000);
+
+// 2. Initialize the Mouse HID
+Mouse.begin();
+USB.begin();
+
+// 3. Seed the random generator using an unconnected analog pin
+randomSeed(analogRead(1));
+}
+
+void loop() {
+// Generate random movement between -10 and 10 pixels
+// format: move(x, y, wheel)
+signed char moveX = random(-10, 11);
+signed char moveY = random(-10, 11);
+
+// Apply the movement
+Mouse.move(moveX, moveY);
+
+// Wait a bit so the cursor doesn't vibrate invisibly fast
+delay(100);
+}
