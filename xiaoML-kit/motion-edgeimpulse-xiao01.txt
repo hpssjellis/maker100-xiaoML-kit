@@ -1,0 +1,140 @@
+/* Edge Impulse Inference - XIAO ESP32S3 with LSM6DS3
+ * Adapted from EI fusion template for LSM6DS3 (accX/Y/Z only)
+ * Trigger: pull A0 above threshold to run one inference
+ */
+
+#include <ei-motion-xiao_inferencing.h>
+#include <LSM6DS3.h>
+#include <Wire.h>
+
+/* ── Constants ─────────────────────────────────────────────────────────── */
+#define CONVERT_G_TO_MS2    9.80665f
+#define MAX_ACCEPTED_RANGE  2.0f
+#define N_SENSORS           3           // accX accY accZ only
+
+static const bool debug_nn = false;
+
+/* ── IMU instance ───────────────────────────────────────────────────────── */
+LSM6DS3 myIMU(I2C_MODE, 0x6A);
+
+/* ── Sensor data buffer ─────────────────────────────────────────────────── */
+// Index map: 0=accX 1=accY 2=accZ
+static float data[N_SENSORS];
+
+/* ── Forward declarations ───────────────────────────────────────────────── */
+static bool init_IMU(void);
+static uint8_t poll_IMU(void);
+
+/* ════════════════════════════════════════════════════════════════════════ */
+static bool init_IMU(void)
+{
+    return (myIMU.begin() == 0);
+}
+
+static uint8_t poll_IMU(void)
+{
+    float ax = myIMU.readFloatAccelX();
+    float ay = myIMU.readFloatAccelY();
+    float az = myIMU.readFloatAccelZ();
+
+    auto clamp = [](float v) {
+        if (v >  MAX_ACCEPTED_RANGE) return  MAX_ACCEPTED_RANGE;
+        if (v < -MAX_ACCEPTED_RANGE) return -MAX_ACCEPTED_RANGE;
+        return v;
+    };
+    data[0] = clamp(ax) * CONVERT_G_TO_MS2;
+    data[1] = clamp(ay) * CONVERT_G_TO_MS2;
+    data[2] = clamp(az) * CONVERT_G_TO_MS2;
+
+    return 0;
+}
+
+/* ════════════════════════════════════════════════════════════════════════ */
+void setup()
+{
+    Serial.begin(115200);
+    pinMode(LED_BUILTIN, OUTPUT);  
+   // while (!Serial);   // stops it working if not connected to serial
+    Serial.println("EI Inference — LSM6DS3 on XIAO ESP32S3\n");
+
+    if (!init_IMU()) {
+        Serial.println("FATAL: IMU init failed");
+        while (1);
+    }
+    Serial.println("IMU ready.");
+
+
+    if (EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME != N_SENSORS) {
+        Serial.printf(
+            "ERR: Model expects %d axes but firmware provides %d.\n",
+            EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME, N_SENSORS);
+        while (1);
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════ */
+void loop()
+{
+
+
+    float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = {0};
+
+    for (size_t ix = 0; ix < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE;
+         ix += EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME)
+    {
+        int64_t next_tick = (int64_t)micros()
+                          + ((int64_t)EI_CLASSIFIER_INTERVAL_MS * 1000);
+
+        poll_IMU();
+
+        buffer[ix + 0] = data[0];   // accX  (m/s²)
+        buffer[ix + 1] = data[1];   // accY
+        buffer[ix + 2] = data[2];   // accZ
+
+        int64_t wait_time = next_tick - (int64_t)micros();
+        if (wait_time > 0) delayMicroseconds(wait_time);
+    }
+
+    // Wrap buffer in EI signal
+    signal_t signal;
+    int err = numpy::signal_from_buffer(
+                  buffer, EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE, &signal);
+    if (err != 0) {
+        Serial.printf("ERR: signal_from_buffer (%d)\n", err);
+        return;
+    }
+
+    // Run classifier
+    ei_impulse_result_t result = {0};
+    err = run_classifier(&signal, &result, debug_nn);
+    if (err != EI_IMPULSE_OK) {
+        Serial.printf("ERR: run_classifier (%d)\n", err);
+        return;
+    }
+
+    /*
+
+    // Print results
+    Serial.printf("Predictions (DSP: %dms  Class: %dms  Anomaly: %dms), ",
+        result.timing.dsp,
+        result.timing.classification,
+        result.timing.anomaly);
+        */
+
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        Serial.printf("  %-12s %.4f, ",
+            result.classification[ix].label,
+            result.classification[ix].value);
+    }
+    
+    Serial.printf("\n");
+
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    Serial.printf("  anomaly score: %.3f\n", result.anomaly);
+#endif
+
+
+
+    delay(100);
+}
+
