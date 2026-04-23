@@ -2,118 +2,134 @@
 #include "ESP_I2S.h"
 #include "WebServer.h"
 
-// --- Configuration ---
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* mySsid = "ssid2222";
+const char* myPassword = "pass2222";
 
-I2SClass i2s;
-WebServer server(80);
+I2SClass myI2S;
+WebServer myServer(80);
 
-// Audio Settings
 #define SAMPLE_RATE 16000
-#define BITS_PER_SAMPLE 16
+#define BUFFER_SAMPLES 512   // number of samples per chunk
 
-// HTML Page for the browser
-const char* htmlPage = 
-"<!DOCTYPE html><html><head><title>XIAO S3 Audio Stream</title><style>"
-"body{font-family:sans-serif; text-align:center; padding:50px; background:#f4f4f4;}"
-".container{background:white; padding:20px; border-radius:10px; display:inline-block;}"
-"</style></head><body><div class='container'>"
-"<h1>XIAO S3 Live Audio</h1>"
-"<audio controls autoplay><source src='/stream' type='audio/wav'></audio>"
-"<p>Status: <span style='color:green'>Live</span></p></div>"
+// HTML
+const char* myPage =
+"<html><body style='text-align:center;'>"
+"<h2>Live Audio</h2>"
+"<audio controls autoplay src='/stream'></audio>"
 "</body></html>";
 
-void handleRoot() {
-  server.send(200, "text/html", htmlPage);
+
+// --- WAV HEADER ---
+void mySendHeader(WiFiClient* myClient) {
+  uint8_t myHeader[44];
+
+  uint32_t mySampleRate = SAMPLE_RATE;
+  uint16_t myBits = 16;
+  uint16_t myChannels = 1;
+
+  uint32_t myByteRate = mySampleRate * myChannels * myBits / 8;
+  uint16_t myBlockAlign = myChannels * myBits / 8;
+
+  uint32_t myDataSize = 0xFFFFFFFF;
+  uint32_t myFileSize = myDataSize + 36;
+
+  memcpy(myHeader, "RIFF", 4);
+  memcpy(myHeader + 4, &myFileSize, 4);
+  memcpy(myHeader + 8, "WAVE", 4);
+  memcpy(myHeader + 12, "fmt ", 4);
+
+  uint32_t myFmtSize = 16;
+  memcpy(myHeader + 16, &myFmtSize, 4);
+
+  uint16_t myFormat = 1;
+  memcpy(myHeader + 20, &myFormat, 2);
+  memcpy(myHeader + 22, &myChannels, 2);
+  memcpy(myHeader + 24, &mySampleRate, 4);
+  memcpy(myHeader + 28, &myByteRate, 4);
+  memcpy(myHeader + 32, &myBlockAlign, 2);
+  memcpy(myHeader + 34, &myBits, 2);
+
+  memcpy(myHeader + 36, "data", 4);
+  memcpy(myHeader + 40, &myDataSize, 4);
+
+  myClient->write(myHeader, 44);
 }
 
-// Helper to generate WAV header for a "continuous" stream
-void sendWavHeader(WiFiClient* client) {
-  uint8_t header[44];
-  uint32_t totalDataLen = 0xFFFFFFFF; // Set to max for infinite stream
-  uint32_t sampleRate = SAMPLE_RATE;
-  uint16_t channels = 1;
-  uint16_t bitsPerSample = BITS_PER_SAMPLE;
-  uint32_t byteRate = (sampleRate * channels * bitsPerSample) / 8;
 
-  memcpy(header, "RIFF", 4);
-  uint32_t fileSize = totalDataLen + 36;
-  memcpy(header + 4, &fileSize, 4);
-  memcpy(header + 8, "WAVE", 4);
-  memcpy(header + 12, "fmt ", 4);
-  uint32_t fmtLen = 16;
-  memcpy(header + 16, &fmtLen, 4);
-  uint16_t fmtType = 1; // PCM
-  memcpy(header + 20, &fmtType, 2);
-  memcpy(header + 22, &channels, 2);
-  memcpy(header + 24, &sampleRate, 4);
-  memcpy(header + 28, &byteRate, 4);
-  uint16_t blockAlign = (channels * bitsPerSample) / 8;
-  memcpy(header + 32, &blockAlign, 2);
-  memcpy(header + 34, &bitsPerSample, 2);
-  memcpy(header + 36, "data", 4);
-  memcpy(header + 40, &totalDataLen, 4);
-
-  client->write(header, 44);
+// --- ROOT ---
+void myHandleRoot() {
+  myServer.send(200, "text/html", myPage);
 }
 
-void handleStream() {
-  WiFiClient client = server.client();
-  
-  // 1. Tell browser we are sending an audio stream
-  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "audio/x-wav", "");
-  
-  // 2. Send the required WAV header immediately
-  sendWavHeader(&client);
 
-  const size_t bufferSize = 1024;
-  uint8_t buffer[bufferSize];
-  size_t bytesRead = 0;
+// --- STREAM ---
+void myHandleStream() {
 
-  Serial.println("Streaming started...");
+  WiFiClient myClient = myServer.client();
 
-  // 3. Continuous transmission loop
-  while (client.connected()) {
-    // Correct Seeed I2S signature with timeout (10ms)
-    // .read(dest, len, &actual_read, timeout_ms)
-    i2s.read(buffer, bufferSize, &bytesRead, 10);
+  myServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  myServer.send(200, "audio/wav", "");
 
-    if (bytesRead > 0) {
-      if (client.write(buffer, bytesRead) != bytesRead) {
-        break; // Stop if network buffer is full or client leaves
+  mySendHeader(&myClient);
+
+  int16_t mySampleBuffer[BUFFER_SAMPLES];
+
+  Serial.println("Streaming...");
+
+  while (myClient.connected()) {
+
+    // Fill buffer manually (THIS is the key fix)
+    for (int i = 0; i < BUFFER_SAMPLES; i++) {
+
+      int mySample = myI2S.read();
+
+      // filter invalid samples (from wiki)
+      if (mySample == -1 || mySample == 0 || mySample == 1) {
+        mySample = 0;
       }
+
+      mySampleBuffer[i] = mySample;
     }
-    // Small yield to let the ESP32 handle background WiFi/System tasks
-    yield();
+
+    // send buffer as bytes
+    myClient.write((uint8_t*)mySampleBuffer, BUFFER_SAMPLES * 2);
+
+    delay(1);
   }
-  Serial.println("Streaming stopped.");
+
+  Serial.println("Stopped");
 }
 
+
+// --- SETUP ---
 void setup() {
+
   Serial.begin(115200);
-  
-  // Initialize I2S for XIAO S3 Sense PDM Mic (Pins 42, 41)
-  i2s.setPinsPdmRx(42, 41);
-  if (!i2s.begin(I2S_MODE_PDM_RX, SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
-    Serial.println("Failed to start I2S!");
+
+  myI2S.setPinsPdmRx(42, 41);
+
+  if (!myI2S.begin(I2S_MODE_PDM_RX, SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
+    Serial.println("I2S failed");
     while (1);
   }
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(mySsid, myPassword);
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.print("\nConnected! Visit: http://");
+
+  Serial.println("\nConnected");
   Serial.println(WiFi.localIP());
 
-  server.on("/", handleRoot);
-  server.on("/stream", handleStream);
-  server.begin();
+  myServer.on("/", myHandleRoot);
+  myServer.on("/stream", myHandleStream);
+  myServer.begin();
 }
 
+
+// --- LOOP ---
 void loop() {
-  server.handleClient();
+  myServer.handleClient();
 }
