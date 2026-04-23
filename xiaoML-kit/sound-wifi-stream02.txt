@@ -1,26 +1,24 @@
 #include "WiFi.h"
 #include "ESP_I2S.h"
-#include "WebServer.h"
 
-const char* mySsid = "ssid2222";
-const char* myPassword = "pass2222";
+// --- WiFi ---
+const char* mySsid = "YOUR SSID";
+const char* myPassword = "YOUR PASS";
 
+// --- Server ---
+WiFiServer myServer(80);
+
+// --- I2S ---
 I2SClass myI2S;
-WebServer myServer(80);
 
+// --- Audio ---
 #define SAMPLE_RATE 16000
-#define BUFFER_SAMPLES 512   // number of samples per chunk
-
-// HTML
-const char* myPage =
-"<html><body style='text-align:center;'>"
-"<h2>Live Audio</h2>"
-"<audio controls autoplay src='/stream'></audio>"
-"</body></html>";
+#define CHUNK_SAMPLES 64   // small = low latency, more stable
 
 
 // --- WAV HEADER ---
-void mySendHeader(WiFiClient* myClient) {
+void mySendWavHeader(WiFiClient &myClient) {
+
   uint8_t myHeader[44];
 
   uint32_t mySampleRate = SAMPLE_RATE;
@@ -36,8 +34,8 @@ void mySendHeader(WiFiClient* myClient) {
   memcpy(myHeader, "RIFF", 4);
   memcpy(myHeader + 4, &myFileSize, 4);
   memcpy(myHeader + 8, "WAVE", 4);
-  memcpy(myHeader + 12, "fmt ", 4);
 
+  memcpy(myHeader + 12, "fmt ", 4);
   uint32_t myFmtSize = 16;
   memcpy(myHeader + 16, &myFmtSize, 4);
 
@@ -52,52 +50,66 @@ void mySendHeader(WiFiClient* myClient) {
   memcpy(myHeader + 36, "data", 4);
   memcpy(myHeader + 40, &myDataSize, 4);
 
-  myClient->write(myHeader, 44);
+  myClient.write(myHeader, 44);
 }
 
 
-// --- ROOT ---
-void myHandleRoot() {
-  myServer.send(200, "text/html", myPage);
+// --- SEND HTML PAGE ---
+void mySendPage(WiFiClient &myClient) {
+
+  myClient.println("HTTP/1.1 200 OK");
+  myClient.println("Content-Type: text/html");
+  myClient.println("Connection: close");
+  myClient.println();
+
+  myClient.println("<!DOCTYPE html><html><body style='text-align:center;font-family:sans-serif;'>");
+  myClient.println("<h2>XIAO ESP32S3 Live Audio</h2>");
+  myClient.println("<audio controls autoplay src='/stream'></audio>");
+  myClient.println("</body></html>");
 }
 
 
-// --- STREAM ---
-void myHandleStream() {
+// --- STREAM AUDIO ---
+void myStreamAudio(WiFiClient &myClient) {
 
-  WiFiClient myClient = myServer.client();
+  // HTTP headers (NO chunked encoding!)
+  myClient.println("HTTP/1.1 200 OK");
+  myClient.println("Content-Type: audio/wav");
+  myClient.println("Connection: close");
+  myClient.println();
 
-  myServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  myServer.send(200, "audio/wav", "");
+  mySendWavHeader(myClient);
 
-  mySendHeader(&myClient);
+  int16_t myBuffer[CHUNK_SAMPLES];
 
-  int16_t mySampleBuffer[BUFFER_SAMPLES];
-
-  Serial.println("Streaming...");
+  Serial.println("Streaming started");
 
   while (myClient.connected()) {
 
-    // Fill buffer manually (THIS is the key fix)
-    for (int i = 0; i < BUFFER_SAMPLES; i++) {
+    // fill buffer sample-by-sample (Seeed method)
+    for (int i = 0; i < CHUNK_SAMPLES; i++) {
 
       int mySample = myI2S.read();
 
-      // filter invalid samples (from wiki)
       if (mySample == -1 || mySample == 0 || mySample == 1) {
         mySample = 0;
       }
 
-      mySampleBuffer[i] = mySample;
+      myBuffer[i] = mySample;
     }
 
-    // send buffer as bytes
-    myClient.write((uint8_t*)mySampleBuffer, BUFFER_SAMPLES * 2);
+    size_t mySent = myClient.write((uint8_t*)myBuffer, CHUNK_SAMPLES * 2);
 
-    delay(1);
+    if (mySent == 0) {
+      Serial.println("Client disconnected");
+      break;
+    }
+
+    yield(); // keep WiFi alive
   }
 
-  Serial.println("Stopped");
+  myClient.stop();
+  Serial.println("Streaming stopped");
 }
 
 
@@ -106,30 +118,51 @@ void setup() {
 
   Serial.begin(115200);
 
+  // --- I2S ---
   myI2S.setPinsPdmRx(42, 41);
 
   if (!myI2S.begin(I2S_MODE_PDM_RX, SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
-    Serial.println("I2S failed");
+    Serial.println("I2S failed!");
     while (1);
   }
 
+  // --- WiFi ---
   WiFi.begin(mySsid, myPassword);
 
+  Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("\nConnected");
+  Serial.println("\nConnected!");
+  Serial.print("Open: http://");
   Serial.println(WiFi.localIP());
 
-  myServer.on("/", myHandleRoot);
-  myServer.on("/stream", myHandleStream);
   myServer.begin();
 }
 
 
 // --- LOOP ---
 void loop() {
-  myServer.handleClient();
+
+  WiFiClient myClient = myServer.available();
+
+  if (myClient) {
+
+    Serial.println("Client connected");
+
+    String myRequest = myClient.readStringUntil('\r');
+    myClient.readStringUntil('\n'); // clear line
+
+    Serial.println(myRequest);
+
+    if (myRequest.indexOf("GET /stream") >= 0) {
+      myStreamAudio(myClient);
+    } else {
+      mySendPage(myClient);
+      delay(1);
+      myClient.stop();
+    }
+  }
 }
