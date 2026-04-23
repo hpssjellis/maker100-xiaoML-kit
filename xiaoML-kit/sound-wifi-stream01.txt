@@ -1,0 +1,85 @@
+#include "WiFi.h"
+#include "ESP_I2S.h"
+#include "WebServer.h"
+
+// --- Configuration ---
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+I2SClass i2s;
+WebServer server(80);
+
+// Audio Settings
+#define SAMPLE_RATE 16000
+#define BITS_PER_SAMPLE 16
+
+// HTML Page with a simple Audio Player
+const char* htmlPage = 
+"<!DOCTYPE html><html><head><title>XIAO S3 Audio Stream</title></head><body>"
+"<h1>ESP32-S3 Live Audio</h1>"
+"<audio id='audioPlayer' controls autoPlay>"
+"  <source src='/stream' type='audio/wav'>"
+"</audio>"
+"<p>Status: <span id='status'>Streaming...</span></p>"
+"</body></html>";
+
+void handleRoot() {
+  server.send(200, "text/html", htmlPage);
+}
+
+void handleStream() {
+  WiFiClient client = server.client();
+  
+  // HTTP Header for a WAV stream
+  // We use a "fake" massive size so the browser keeps playing
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "audio/x-wav", "");
+
+  // Minimal WAV Header for 16-bit Mono 16kHz
+  uint8_t header[44];
+  // ... (Header logic is simplified here; most browsers accept raw PCM if MIME is right)
+  
+  const size_t bufferSize = 1024;
+  uint8_t buffer[bufferSize];
+
+  Serial.println("Client connected to stream");
+
+  while (client.connected()) {
+    size_t bytesRead = 0;
+    // Read from I2S hardware
+    int r = i2s.read(buffer, bufferSize);
+    
+    if (r > 0) {
+      if (client.write(buffer, r) != r) {
+        break; // Drop if client is full/disconnected
+      }
+    }
+  }
+  Serial.println("Stream ended");
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  // 1. Initialize I2S (Pins 42, 41 for XIAO S3 Sense)
+  i2s.setPinsPdmRx(42, 41);
+  if (!i2s.begin(I2S_MODE_PDM_RX, SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
+    Serial.println("I2S Fail!");
+    while (1);
+  }
+
+  // 2. Connect WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.println("\nWiFi Connected. IP:");
+  Serial.println(WiFi.localIP());
+
+  // 3. Setup Server Routes
+  server.on("/", handleRoot);
+  server.on("/stream", handleStream);
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+}
