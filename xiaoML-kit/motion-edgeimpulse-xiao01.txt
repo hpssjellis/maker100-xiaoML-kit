@@ -1,6 +1,5 @@
 /* Edge Impulse Inference - XIAO ESP32S3 with LSM6DS3
  * Adapted from EI fusion template for LSM6DS3 (accX/Y/Z only)
- * Trigger: pull A0 above threshold to run one inference
  */
 
 #include <ei-motion-xiao_inferencing.h>
@@ -18,7 +17,6 @@ static const bool debug_nn = false;
 LSM6DS3 myIMU(I2C_MODE, 0x6A);
 
 /* ── Sensor data buffer ─────────────────────────────────────────────────── */
-// Index map: 0=accX 1=accY 2=accZ
 static float data[N_SENSORS];
 
 /* ── Forward declarations ───────────────────────────────────────────────── */
@@ -53,8 +51,8 @@ static uint8_t poll_IMU(void)
 void setup()
 {
     Serial.begin(115200);
-    pinMode(LED_BUILTIN, OUTPUT);  
-   // while (!Serial);   // stops it working if not connected to serial
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LOW);
     Serial.println("EI Inference — LSM6DS3 on XIAO ESP32S3\n");
 
     if (!init_IMU()) {
@@ -62,7 +60,6 @@ void setup()
         while (1);
     }
     Serial.println("IMU ready.");
-
 
     if (EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME != N_SENSORS) {
         Serial.printf(
@@ -75,8 +72,6 @@ void setup()
 /* ════════════════════════════════════════════════════════════════════════ */
 void loop()
 {
-
-
     float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = {0};
 
     for (size_t ix = 0; ix < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE;
@@ -112,29 +107,30 @@ void loop()
         return;
     }
 
-    /*
+    // Find strongest prediction
+    int best_ix = 0;
+    float best_val = result.classification[0].value;
+    for (size_t ix = 1; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        if (result.classification[ix].value > best_val) {
+            best_val = result.classification[ix].value;
+            best_ix  = ix;
+        }
+    }
 
-    // Print results
-    Serial.printf("Predictions (DSP: %dms  Class: %dms  Anomaly: %dms), ",
-        result.timing.dsp,
-        result.timing.classification,
-        result.timing.anomaly);
-        */
+    // LED on only when class 0 wins
+    digitalWrite(LED_BUILTIN, best_ix == 0 ? HIGH : LOW);
 
+    // Print all scores then winner label
     for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-        Serial.printf("  %-12s %.4f, ",
+        Serial.printf("%s: %.4f  ,",
             result.classification[ix].label,
             result.classification[ix].value);
     }
-    
-    Serial.printf("\n");
+    Serial.printf("→ %s\n", result.classification[best_ix].label);
 
 #if EI_CLASSIFIER_HAS_ANOMALY == 1
     Serial.printf("  anomaly score: %.3f\n", result.anomaly);
 #endif
 
-
-
-    delay(100);
+    delay(10);
 }
-
