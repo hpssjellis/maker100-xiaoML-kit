@@ -3,83 +3,130 @@
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+#include <U8g2lib.h>
+
+// Initialize the 72x40 OLED using the Page Buffer mode (saves RAM)
+U8G2_SSD1306_72X40_ER_1_HW_I2C myDisplay(U8G2_R2, U8X8_PIN_NONE);
 
 LSM6DS3 myIMU(I2C_MODE, 0x6A);
 
-const int TRIGGER_PIN = A0; 
-const int THRESHOLD = 1200;
-int sessionID = 0;   // The random 4-digit prefix
-int fileCounter = 1; // The incrementing counter
+const int myTriggerPin = A0; 
+const int myThreshold = 1200;
+int mySessionID = 0;
+int myFileCounter = 1;
+char myFullFilename[32] = "Ready";
+char myShortFilename[32] = "Ready";
+int myRecordMS = 2000;  
+
+// Timer for display updates (non-blocking)
+unsigned long myPrevMillis = 0;
+const long myDisplayInterval = 100; // 10Hz update
+
+// Global variables for live display
+float myCurrentX, myCurrentY, myCurrentZ;
+
+void myUpdateDisplay() {
+  myDisplay.firstPage();
+  do {
+    // Header Font
+    myDisplay.setFont(u8g2_font_5x7_tf);
+    myDisplay.setCursor(0, 7);
+    myDisplay.print("File:");
+    myDisplay.print(myShortFilename);
+
+    // Motion Data - using smaller spacing for the 40px height
+    myDisplay.setCursor(0, 18);
+    myDisplay.print(myCurrentX, 2);
+    myDisplay.setCursor(0, 28);
+    myDisplay.print(myCurrentY, 2); 
+    myDisplay.setCursor(0, 38);
+    myDisplay.print(myCurrentZ, 2);
+  } while (myDisplay.nextPage());
+}
 
 void setup() {
   Serial.begin(115200);
-  pinMode(TRIGGER_PIN, PULLDOWN);
+  if (!Serial) { delay(2000); } // Brief pause for Serial
   
-  // Initialize IMU
+  pinMode(myTriggerPin, PULLDOWN);
+  myDisplay.begin();
+  
   if (myIMU.begin() != 0) {
     Serial.println("IMU fail");
     while (1);
   }
 
-  // Initialize SD
   if (!SD.begin(21)) {
     Serial.println("SD fail");
     while (1);
   }
 
-  // Generate a random 4-digit number (1000 - 9999)
-  randomSeed(analogRead(A0)); // Seed using noise from an unconnected pin
-  sessionID = random(1000, 10000);
-
-  Serial.print("System Ready. Session ID: ");
-  Serial.println(sessionID);
-  Serial.printf("Pull A0 above %d to record.\n", THRESHOLD);
+  randomSeed(analogRead(A0));
+  mySessionID = random(1000, 10000);
+  Serial.println("System Ready. Session: " + String(mySessionID));
 }
 
-void recordBurst() {
-  char filename[32];
-  // Format: /6542_1.csv, /6542_2.csv, etc.
-  sprintf(filename, "/%d_%d.csv", sessionID, fileCounter++);
+void myRecordBurst() {
+  // Generate names using current counter
+  sprintf(myFullFilename, "/%d_%d.csv", mySessionID, myFileCounter);
+  sprintf(myShortFilename, "%d_%d", mySessionID, myFileCounter);
   
-  File file = SD.open(filename, FILE_WRITE);
-  if (!file) {
-    Serial.println("File open error");
+  Serial.print(" Recording: ");
+  Serial.print(myFullFilename);
+  
+  File myFile = SD.open(myFullFilename, FILE_WRITE);
+  if (!myFile) {
+    Serial.println("File error");
     return;
   }
 
-  // Header for Edge Impulse
-  file.println("timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ");
+  myFile.println("timestamp,accX,accY,accZ");
   
-  Serial.printf("Recording to %s... ", filename);
-  
-  unsigned long startTime = millis();
-  // Record for exactly 1000ms
-  while (millis() - startTime < 1000) {
-    file.print(millis() - startTime);
-    file.print(",");
-    file.print(myIMU.readFloatAccelX(), 4); file.print(",");
-    file.print(myIMU.readFloatAccelY(), 4); file.print(",");
-    file.print(myIMU.readFloatAccelZ(), 4); file.print(",");
-    file.print(myIMU.readFloatGyroX(), 2); file.print(",");
-    file.print(myIMU.readFloatGyroY(), 2); file.print(",");
-    file.println(myIMU.readFloatGyroZ(), 2);
+  unsigned long myStartTime = millis();
+  while (millis() - myStartTime < myRecordMS) {
+    myCurrentX = myIMU.readFloatAccelX() * 9.8;
+    myCurrentY = myIMU.readFloatAccelY() * 9.8;
+    myCurrentZ = myIMU.readFloatAccelZ() * 9.8;
+
+    myFile.print(millis() - myStartTime);
+    myFile.print(",");
+    myFile.print(myCurrentX, 4); myFile.print(",");
+    myFile.print(myCurrentY, 4); myFile.print(",");
+    myFile.println(myCurrentZ, 4); 
     
-    delay(10); // 100Hz
+    // Tiny delay to maintain sample rate
+    delay(10); 
   }
 
-  file.close();
-  Serial.println("Done.");
-  
-  // Cooldown to prevent multiple triggers from one "press"
-  delay(1000); 
+  myFile.close();
+  myFileCounter++; // Increment for next file
+  myUpdateDisplay(); 
+  delay(500); // Short cooldown
 }
 
 void loop() {
-  // Read analog value (0 - 4095)
-  int val = analogRead(TRIGGER_PIN);
-  
-  if (val > THRESHOLD) {
-    Serial.println("A1:" + String(val));
-    recordBurst();
+  int myAnalogVal = analogRead(myTriggerPin);
+  unsigned long myCurrentMillis = millis();
+
+  // Read sensor data continuously
+  myCurrentX = myIMU.readFloatAccelX() * 9.8;;
+  myCurrentY = myIMU.readFloatAccelY() * 9.8;;
+  myCurrentZ = myIMU.readFloatAccelZ() * 9.8;;
+
+  // Update display based on interval
+  if (myCurrentMillis - myPrevMillis >= myDisplayInterval) {
+    myPrevMillis = myCurrentMillis;
+    myUpdateDisplay();
+  }
+
+  // Trigger recording
+  if (myAnalogVal > myThreshold) {
+    Serial.print("Start recording for ");
+    Serial.print(myRecordMS);
+
+
+    
+    myRecordBurst();
+    Serial.println(", CSV File Saved.");
   }
 }
