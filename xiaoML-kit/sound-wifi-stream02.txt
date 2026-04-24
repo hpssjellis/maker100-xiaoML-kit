@@ -98,7 +98,7 @@ void mySendPage(WiFiClient &myClient) {
   myClient.println("    let myUrl = URL.createObjectURL(myBlob);");
   myClient.println("    let myA = document.createElement('a');");
   myClient.println("    myA.href = myUrl;");
-  myClient.println("    myA.download = 'myRecording.wav';");  // actually a .webm file but windows opens .wav easier
+  myClient.println("    myA.download = 'myRecording.webm';");  // drag to webpage or force open with media player
   myClient.println("    myA.click();");
   myClient.println("    document.getElementById('myStatus').innerHTML = 'Status: saved ✔';");
   myClient.println("  };");
