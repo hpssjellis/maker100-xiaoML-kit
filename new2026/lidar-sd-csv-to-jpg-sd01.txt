@@ -1,0 +1,99 @@
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+
+// Configuration for the "Virtual" Frame Buffer
+#define MAP_SIZE 800         // 800x800 pixel image
+#define MAX_DIST_MM 15000    // 15 meters
+#define SCALE (MAP_SIZE / (MAX_DIST_MM * 2.0)) // Pixels per mm
+
+// Use PSRAM for the canvas (800x800 grayscale = 640KB) 
+uint8_t* canvas; 
+
+void setup() {
+  Serial.begin(115200);
+  
+  // 1. Initialize SD Card (XIAO ESP32S3 Pin 21) [cite: 16, 34]
+  if (!SD.begin(21)) {
+    Serial.println("SD initialization failed!");
+    return;
+  }
+
+  // 2. Allocate Canvas in PSRAM [cite: 15]
+  canvas = (uint8_t*)ps_malloc(MAP_SIZE * MAP_SIZE);
+  if (canvas == NULL) {
+    Serial.println("PSRAM allocation failed!");
+    return;
+  }
+  memset(canvas, 0, MAP_SIZE * MAP_SIZE); // Clear to black [cite: 22]
+
+  // 3. Process the CSV and Draw to Canvas
+  processLidarCSV("/lidar_data.csv");
+
+  // 4. Convert Canvas to JPEG and Save
+  saveCanvasAsJpeg("/classroom_map.jpg");
+  
+  Serial.println("Conversion Complete.");
+}
+
+void processLidarCSV(const char* path) {
+  File file = SD.open(path); [cite: 5, 36]
+  if (!file) {
+    Serial.println("Failed to open CSV");
+    return;
+  }
+
+  // Skip header if it exists [cite: 37]
+  if (file.available()) file.readStringUntil('\n');
+
+  while (file.available()) {
+    String line = file.readStringUntil('\n');
+    int commaIndex = line.indexOf(',');
+    if (commaIndex == -1) continue;
+
+    float angle = line.substring(0, commaIndex).toFloat();
+    float distance = line.substring(commaIndex + 1).toFloat();
+
+    if (distance > 0 && distance <= MAX_DIST_MM) {
+      // Convert Polar to Cartesian 
+      float rad = angle * DEG_TO_RAD;
+      int x = (int)((distance * cos(rad)) * SCALE) + (MAP_SIZE / 2);
+      int y = (int)((distance * sin(rad)) * SCALE) + (MAP_SIZE / 2);
+
+      // Draw pixel if within bounds 
+      if (x >= 0 && x < MAP_SIZE && y >= 0 && y < MAP_SIZE) {
+        canvas[y * MAP_SIZE + x] = 255; // White pixel for walls/people
+      }
+    }
+  }
+  file.close(); [cite: 9, 40]
+}
+
+void saveCanvasAsJpeg(const char* path) {
+  // Create a fake camera frame buffer structure to use the internal encoder [cite: 17]
+  camera_fb_t fb;
+  fb.buf = canvas;
+  fb.len = MAP_SIZE * MAP_SIZE;
+  fb.width = MAP_SIZE;
+  fb.height = MAP_SIZE;
+  fb.format = PIXFORMAT_GRAYSCALE; [cite: 15]
+
+  uint8_t * out_jpg_ptr = NULL;
+  size_t out_jpg_len = 0;
+
+  // Use the ESP32-S3 hardware-aware converter
+  if (frame2jpg(&fb, 80, &out_jpg_ptr, &out_jpg_len)) {
+    File file = SD.open(path, FILE_WRITE); [cite: 5, 36]
+    if (file) {
+      file.write(out_jpg_ptr, out_jpg_len); [cite: 7]
+      file.close(); [cite: 40]
+      Serial.printf("JPEG saved to %s (%u bytes)\n", path, out_jpg_len);
+    }
+    free(out_jpg_ptr); // Important to free the allocated JPEG buffer
+  } else {
+    Serial.println("JPEG compression failed");
+  }
+}
+
+void loop() {}
