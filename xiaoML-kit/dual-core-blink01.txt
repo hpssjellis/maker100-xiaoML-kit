@@ -1,0 +1,132 @@
+// ============================================================
+//  Dual-Core Teaching Demo — Seeed Studio XIAO ESP32-S3
+//  Core 0 (app_cpu / "other core") : prints + blinks every 5 s
+//  Core 1 (pro_cpu / "main core")  : prints + blinks every 3 s
+//                                    + analogRead on A0
+// ============================================================
+//
+//  Key concepts demonstrated
+//  --------------------------
+//  1. xTaskCreatePinnedToCore()  — launches a task on a chosen core
+//  2. vTaskDelay()               — non-blocking delay inside a task
+//  3. Serial AND LED_BUILTIN are shared resources — each gets its
+//     own Mutex so cores never clash on either one
+//  4. loop() runs on Core 1 (Arduino default)
+//
+// ============================================================
+
+// ---------- Shared mutexes — one per shared resource --------
+SemaphoreHandle_t serialMutex;
+SemaphoreHandle_t ledMutex;
+
+// ============================================================
+//  Helper: blink LED_BUILTIN for 50 ms (thread-safe)
+//  Whoever calls this will block on the ledMutex first,
+//  guaranteeing only one core drives the pin at a time.
+// ============================================================
+void blinkLED() {
+  if (xSemaphoreTake(ledMutex, portMAX_DELAY)) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    vTaskDelay(50 / portTICK_PERIOD_MS);   // 50 ms on
+    digitalWrite(LED_BUILTIN, LOW);
+    xSemaphoreGive(ledMutex);
+  }
+}
+
+// ============================================================
+//  Task running on Core 0
+//  Prints a hello every 5 seconds
+// ============================================================
+void otherCoreTask(void * parameter) {
+  // Give the Serial port a moment to settle after setup()
+  vTaskDelay(500 / portTICK_PERIOD_MS);
+
+  while (true) {
+    // Blink first, then print
+    blinkLED();
+
+    // Grab the mutex before touching Serial
+    if (xSemaphoreTake(serialMutex, portMAX_DELAY)) {
+      Serial.print("[ Core 0 ] Hello from the OTHER core! ");
+      Serial.print("  (running on core ");
+      Serial.print(xPortGetCoreID());
+      Serial.println(")");
+      xSemaphoreGive(serialMutex);
+    }
+
+    vTaskDelay(5000 / portTICK_PERIOD_MS);   // wait 5 seconds
+  }
+}
+
+// ============================================================
+//  setup() — runs once on Core 1
+// ============================================================
+void setup() {
+  Serial.begin(115200);
+  while (!Serial) { ; }   // wait for USB-Serial to connect
+
+  delay(1000);            // short pause so terminal is ready
+
+  Serial.println();
+  Serial.println("============================================");
+  Serial.println("  Dual-Core Demo — XIAO ESP32-S3");
+  Serial.println("============================================");
+  Serial.print("  setup() is running on core: ");
+  Serial.println(xPortGetCoreID());
+  Serial.println("--------------------------------------------");
+
+  // Create the mutex before launching any task
+  serialMutex = xSemaphoreCreateMutex();
+  ledMutex    = xSemaphoreCreateMutex();
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // Launch the Core-0 task
+  // xTaskCreatePinnedToCore(
+  //   function,      — task function
+  //   name,          — friendly label (for debugging)
+  //   stack (bytes), — 2048 is plenty for a simple print task
+  //   parameter,     — passed to the function (NULL here)
+  //   priority,      — 1 = low, fine for a teaching demo
+  //   handle,        — optional handle (NULL = don't need it)
+  //   core id        — 0 = app_cpu
+  // )
+  xTaskCreatePinnedToCore(
+    otherCoreTask,   // function
+    "OtherCore",     // name
+    2048,            // stack size
+    NULL,            // parameter
+    1,               // priority
+    NULL,            // handle
+    0                // ← pin to Core 0
+  );
+}
+
+// ============================================================
+//  loop() — runs repeatedly on Core 1  (Arduino's default)
+// ============================================================
+void loop() {
+  // Blink first, then print
+  blinkLED();
+
+  // Read the analogue pin.  On the XIAO ESP32-S3 A0 = GPIO 1.
+  // analogRead() returns 0-4095 (12-bit ADC).
+  int adcValue = analogRead(A0);
+
+  // Grab the mutex before printing
+  if (xSemaphoreTake(serialMutex, portMAX_DELAY)) {
+    Serial.print("[ Core 1 ] Hello from the MAIN core!  ");
+    Serial.print("analogRead(A0) = ");
+    Serial.print(adcValue);
+    Serial.print("  (~");
+    Serial.print(adcValue * 3.3f / 4095.0f, 2);   // show voltage too
+    Serial.print(" V)");
+    Serial.print("  (running on core ");
+    Serial.print(xPortGetCoreID());
+    Serial.println(")");
+    xSemaphoreGive(serialMutex);
+  }
+
+  delay(3000);   // wait 3 seconds (loop() can use plain delay)
+}
