@@ -42,12 +42,20 @@ void otherCoreTask(void * parameter) {
   vTaskDelay(500 / portTICK_PERIOD_MS);
 
   while (true) {
-    // Blink first, then print
+    // 1. Blink
     blinkLED();
 
-    // Grab the mutex before touching Serial
+    // 2. Read A0 (analogRead is safe to call from any core)
+    int adcValue = analogRead(A0);
+
+    // 3. Print
     if (xSemaphoreTake(serialMutex, portMAX_DELAY)) {
-      Serial.print("[ Core 0 ] Hello from the OTHER core! ");
+      Serial.print("[ Core 0 ] Hello from the OTHER core!  ");
+      Serial.print("analogRead(A0) = ");
+      Serial.print(adcValue);
+      Serial.print("  (~");
+      Serial.print(adcValue * 3.3f / 4095.0f, 2);
+      Serial.print(" V)");
       Serial.print("  (running on core ");
       Serial.print(xPortGetCoreID());
       Serial.println(")");
