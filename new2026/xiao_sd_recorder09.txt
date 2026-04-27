@@ -1,0 +1,505 @@
+// ============================================================
+//  xiao_sd_recorder.ino
+//  XIAO ESP32S3 Sense — Record MJPEG + WAV to SD card
+//
+//  Endpoints (all port 80):
+//    /           → HTML control page
+//    /record     → start recording (returns when done)
+//    /list       → JSON list of recordings on SD
+//    /file?name=xxx.mjpeg  → download a file from SD
+//
+//  SD card files per recording:
+//    /rec_001.mjpeg   — MJPEG container (frame count + timestamps in header)
+//    /rec_001.wav     — WAV audio (16kHz mono 16-bit)
+//    /rec_001.json    — metadata (fps, frame count, duration ms)
+//
+//  Recording is triggered by GET /record?dur=10
+//  dur= is duration in seconds (1–30), default 10
+// ============================================================
+
+#include "WiFi.h"
+#include "esp_camera.h"
+#include "ESP_I2S.h"
+#include "SD.h"
+#include "SPI.h"
+#include "FS.h"
+
+// ─── WiFi ───────────────────────────────────────────────────
+const char* mySsid     = "YOUR-SSID";
+const char* myPassword = "YOUR-PASSWORD";
+
+// ─── Camera pins ────────────────────────────────────────────
+#define PWDN_GPIO_NUM   -1
+#define RESET_GPIO_NUM  -1
+#define XCLK_GPIO_NUM   10
+#define SIOD_GPIO_NUM   40
+#define SIOC_GPIO_NUM   39
+#define Y9_GPIO_NUM     48
+#define Y8_GPIO_NUM     11
+#define Y7_GPIO_NUM     12
+#define Y6_GPIO_NUM     14
+#define Y5_GPIO_NUM     16
+#define Y4_GPIO_NUM     18
+#define Y3_GPIO_NUM     17
+#define Y2_GPIO_NUM     15
+#define VSYNC_GPIO_NUM  38
+#define HREF_GPIO_NUM   47
+#define PCLK_GPIO_NUM   13
+
+// ─── Audio ──────────────────────────────────────────────────
+#define MY_PDM_CLK_PIN    42
+#define MY_PDM_DAT_PIN    41
+#define MY_SAMPLE_RATE    16000
+#define MY_AUDIO_BUF      256   // samples per I2S read chunk
+
+// ─── SD card (XIAO ESP32S3 built-in SD slot) ────────────────
+#define MY_SD_CS    21
+
+// ─── Recording limits ───────────────────────────────────────
+#define MY_MAX_DUR_SEC   30
+#define MY_DEFAULT_DUR   10
+#define MY_TARGET_FPS    10    // camera capture target
+
+// ─── Server ─────────────────────────────────────────────────
+WiFiServer myServer(80);
+
+// ─── I2S ────────────────────────────────────────────────────
+I2SClass myI2S;
+
+// ─── Recording state ────────────────────────────────────────
+volatile bool myRecording = false;
+
+// ============================================================
+//  MJPEG CONTAINER FORMAT
+//
+//  Simple custom container — easy to parse in browser JS:
+//
+//  File header  (16 bytes):
+//    [0..3]   magic  "MJPG"
+//    [4..7]   uint32 frame_count  (written at end, 0 during record)
+//    [8..11]  uint32 target_fps
+//    [12..15] uint32 duration_ms  (written at end)
+//
+//  Each frame:
+//    [0..3]   uint32 timestamp_ms (from recording start)
+//    [4..7]   uint32 jpeg_length
+//    [8..]    jpeg bytes
+// ============================================================
+#define MY_MJPEG_MAGIC "MJPG"
+#define MY_HEADER_SIZE 16
+
+// Write placeholder header (will seek back and rewrite at end)
+void myWriteMjpegHeader(File& f, uint32_t frameCount, uint32_t fps, uint32_t durMs) {
+  f.seek(0);
+  f.write((uint8_t*)MY_MJPEG_MAGIC, 4);
+  f.write((uint8_t*)&frameCount, 4);
+  f.write((uint8_t*)&fps,        4);
+  f.write((uint8_t*)&durMs,      4);
+}
+
+// ============================================================
+//  WAV HEADER  (finite, written at end with correct size)
+// ============================================================
+void myWriteWavHeader(File& f, uint32_t sampleCount) {
+  uint32_t mySR   = MY_SAMPLE_RATE;
+  uint16_t myBits = 16;
+  uint16_t myCh   = 1;
+  uint32_t myDS   = sampleCount * 2;        // bytes
+  uint32_t myBR   = mySR * myCh * myBits / 8;
+  uint16_t myBA   = myCh * myBits / 8;
+  uint32_t myFS   = myDS + 36;
+  uint8_t  h[44];
+  memcpy(h,    "RIFF", 4);  memcpy(h+4,  &myFS,  4);
+  memcpy(h+8,  "WAVE", 4);  memcpy(h+12, "fmt ", 4);
+  uint32_t fmtSz = 16;      memcpy(h+16, &fmtSz, 4);
+  uint16_t fmt1  = 1;       memcpy(h+20, &fmt1,  2);
+  memcpy(h+22, &myCh,   2); memcpy(h+24, &mySR,  4);
+  memcpy(h+28, &myBR,   4); memcpy(h+32, &myBA,  2);
+  memcpy(h+34, &myBits, 2); memcpy(h+36, "data", 4);
+  memcpy(h+40, &myDS,   4);
+  f.seek(0);
+  f.write(h, 44);
+}
+
+// ============================================================
+//  NEXT RECORDING INDEX
+//  Scans SD for rec_NNN.mjpeg, returns next unused index
+// ============================================================
+int myNextIndex() {
+  for (int i = 1; i <= 999; i++) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "/rec_%03d.mjpeg", i);
+    if (!SD.exists(buf)) return i;
+  }
+  return 1;  // wrap
+}
+
+// ============================================================
+//  AUDIO TASK  — runs on Core 0 during recording
+//  Signals done by reading myRecording flag
+// ============================================================
+struct MyAudioArg {
+  char path[32];
+};
+
+void myAudioTask(void* param) {
+  MyAudioArg* arg = (MyAudioArg*)param;
+  Serial.printf("[Audio] Recording to %s\n", arg->path);
+
+  File myWav = SD.open(arg->path, FILE_WRITE);
+  if (!myWav) {
+    Serial.println("[Audio] Failed to open WAV file");
+    vTaskDelete(NULL);
+    return;
+  }
+
+  // Write placeholder WAV header — we'll fix it at the end
+  uint8_t blank[44] = {0};
+  myWav.write(blank, 44);
+
+  int16_t myBuf[MY_AUDIO_BUF];
+  uint32_t mySampleCount = 0;
+
+  while (myRecording) {
+    for (int i = 0; i < MY_AUDIO_BUF; i++) {
+      int s = myI2S.read();
+      if (s == -1 || s == 0 || s == 1) s = 0;
+      myBuf[i] = (int16_t)s;
+    }
+    myWav.write((uint8_t*)myBuf, MY_AUDIO_BUF * 2);
+    mySampleCount += MY_AUDIO_BUF;
+    taskYIELD();
+  }
+
+  // Fix WAV header with real sample count
+  myWriteWavHeader(myWav, mySampleCount);
+  myWav.close();
+  Serial.printf("[Audio] Done — %u samples\n", mySampleCount);
+
+  delete arg;
+  vTaskDelete(NULL);
+}
+
+// ============================================================
+//  DO RECORDING  — called from HTTP handler
+//  Returns JSON status string
+// ============================================================
+String myDoRecord(int myDurSec) {
+  if (myDurSec < 1)             myDurSec = MY_DEFAULT_DUR;
+  if (myDurSec > MY_MAX_DUR_SEC) myDurSec = MY_MAX_DUR_SEC;
+
+  int myIdx = myNextIndex();
+  char myMjpegPath[32], myWavPath[32], myJsonPath[32];
+  snprintf(myMjpegPath, sizeof(myMjpegPath), "/rec_%03d.mjpeg", myIdx);
+  snprintf(myWavPath,   sizeof(myWavPath),   "/rec_%03d.wav",   myIdx);
+  snprintf(myJsonPath,  sizeof(myJsonPath),  "/rec_%03d.json",  myIdx);
+
+  Serial.printf("[Rec] Starting: %s + %s (%ds)\n", myMjpegPath, myWavPath, myDurSec);
+
+  // Open MJPEG file
+  File myMjpeg = SD.open(myMjpegPath, FILE_WRITE);
+  if (!myMjpeg) return "{\"error\":\"SD open failed for mjpeg\"}";
+
+  // Write placeholder header
+  myWriteMjpegHeader(myMjpeg, 0, MY_TARGET_FPS, 0);
+
+  // Start audio task on Core 0
+  myRecording = true;
+  MyAudioArg* myArg = new MyAudioArg();
+  strlcpy(myArg->path, myWavPath, sizeof(myArg->path));
+  xTaskCreatePinnedToCore(myAudioTask, "myAudioTask", 8192, myArg, 1, NULL, 0);
+
+  // Record video frames on Core 1
+  uint32_t myStartMs  = millis();
+  uint32_t myEndMs    = myStartMs + (uint32_t)myDurSec * 1000;
+  uint32_t myFrameCount = 0;
+  uint32_t myFrameMs  = 1000 / MY_TARGET_FPS;
+  uint32_t myLastFrameMs = 0;
+
+  while (millis() < myEndMs) {
+    uint32_t myNow = millis() - myStartMs;
+
+    // Pace to target FPS
+    if (myNow - myLastFrameMs < myFrameMs) {
+      delay(1);
+      continue;
+    }
+    myLastFrameMs = myNow;
+
+    camera_fb_t* myFb = esp_camera_fb_get();
+    if (!myFb) continue;
+
+    uint32_t myTs  = myNow;
+    uint32_t myLen = myFb->len;
+
+    myMjpeg.write((uint8_t*)&myTs,  4);
+    myMjpeg.write((uint8_t*)&myLen, 4);
+    myMjpeg.write(myFb->buf, myFb->len);
+
+    esp_camera_fb_return(myFb);
+    myFrameCount++;
+  }
+
+  uint32_t myDurMs = millis() - myStartMs;
+
+  // Stop audio task
+  myRecording = false;
+  delay(200);  // let audio task finish its last write
+
+  // Fix MJPEG header with real values
+  myWriteMjpegHeader(myMjpeg, myFrameCount, MY_TARGET_FPS, myDurMs);
+  myMjpeg.close();
+
+  // Write JSON metadata
+  float myActualFps = (float)myFrameCount / ((float)myDurMs / 1000.0f);
+  File myJson = SD.open(myJsonPath, FILE_WRITE);
+  if (myJson) {
+    myJson.printf("{\"index\":%d,\"frames\":%u,\"fps\":%.2f,\"dur_ms\":%u,\"sample_rate\":%d}",
+                  myIdx, myFrameCount, myActualFps, myDurMs, MY_SAMPLE_RATE);
+    myJson.close();
+  }
+
+  Serial.printf("[Rec] Done — %u frames @ %.1f fps, %u ms\n",
+                myFrameCount, myActualFps, myDurMs);
+
+  char result[128];
+  snprintf(result, sizeof(result),
+           "{\"ok\":true,\"index\":%d,\"frames\":%u,\"fps\":%.2f,\"dur_ms\":%u}",
+           myIdx, myFrameCount, myActualFps, myDurMs);
+  return String(result);
+}
+
+// ============================================================
+//  LIST RECORDINGS  — returns JSON array of indices found
+// ============================================================
+String myListRecordings() {
+  String out = "[";
+  bool first = true;
+  for (int i = 1; i <= 999; i++) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "/rec_%03d.mjpeg", i);
+    if (SD.exists(buf)) {
+      // Try to read metadata
+      char jbuf[32];
+      snprintf(jbuf, sizeof(jbuf), "/rec_%03d.json", i);
+      String meta = "{}";
+      if (SD.exists(jbuf)) {
+        File f = SD.open(jbuf);
+        if (f) { meta = f.readString(); f.close(); }
+      }
+      if (!first) out += ",";
+      out += "{\"index\":" + String(i) + ",\"meta\":" + meta + "}";
+      first = false;
+    }
+  }
+  out += "]";
+  return out;
+}
+
+// ============================================================
+//  SERVE FILE FROM SD
+// ============================================================
+void myServeFile(WiFiClient& myClient, const String& myName) {
+  if (!SD.exists("/" + myName)) {
+    myClient.println("HTTP/1.1 404 Not Found\r\nConnection: close\r\n");
+    return;
+  }
+  File f = SD.open("/" + myName);
+  if (!f) {
+    myClient.println("HTTP/1.1 500 Error\r\nConnection: close\r\n");
+    return;
+  }
+
+  // Pick content type
+  String ct = "application/octet-stream";
+  if (myName.endsWith(".wav"))   ct = "audio/wav";
+  if (myName.endsWith(".json"))  ct = "application/json";
+  if (myName.endsWith(".mjpeg")) ct = "application/octet-stream";
+
+  myClient.printf("HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %u\r\n"
+                  "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
+                  ct.c_str(), f.size());
+
+  uint8_t myFileBuf[1024];
+  while (f.available()) {
+    int n = f.read(myFileBuf, sizeof(myFileBuf));
+    if (n > 0) myClient.write(myFileBuf, n);
+  }
+  f.close();
+}
+
+// ============================================================
+//  HTML CONTROL PAGE
+// ============================================================
+void mySendPage(WiFiClient& myClient) {
+  myClient.println("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n");
+
+  myClient.println(R"rawliteral(<!DOCTYPE html>
+<html>
+<body style="background:#111;color:#eee;font-family:sans-serif;text-align:center;padding:20px">
+<h2>XIAO ESP32S3 — SD Recorder</h2>
+
+<label>Duration (seconds): <input id="myDur" type="number" value="10" min="1" max="30" style="width:60px"></label>
+<br><br>
+<button onclick="myRecord()" style="padding:10px 30px;font-size:1.2em">⏺ Record</button>
+<button onclick="myRefresh()" style="padding:10px 20px">↻ Refresh List</button>
+<p id="myStatus">Ready</p>
+<hr>
+<h3>Recordings on SD</h3>
+<div id="myList">Loading...</div>
+
+<script>
+async function myRecord() {
+  const dur = document.getElementById('myDur').value;
+  document.getElementById('myStatus').textContent = 'Recording ' + dur + 's... please wait';
+  try {
+    const r = await fetch('/record?dur=' + dur);
+    const j = await r.json();
+    document.getElementById('myStatus').textContent =
+      j.ok ? ('Done — ' + j.frames + ' frames @ ' + j.fps.toFixed(1) + ' fps') : ('Error: ' + j.error);
+    myRefresh();
+  } catch(e) {
+    document.getElementById('myStatus').textContent = 'Error: ' + e;
+  }
+}
+
+async function myRefresh() {
+  const r = await fetch('/list');
+  const arr = await r.json();
+  const div = document.getElementById('myList');
+  if (arr.length === 0) { div.innerHTML = '<p>No recordings yet</p>'; return; }
+  div.innerHTML = arr.map(item => {
+    const m = item.meta;
+    const label = 'rec_' + String(item.index).padStart(3,'0');
+    const info  = m.frames ? (m.frames + ' frames, ' + (m.dur_ms/1000).toFixed(1) + 's, ' + m.fps.toFixed(1) + ' fps') : '';
+    return '<div style="margin:8px;padding:8px;border:1px solid #444">' +
+      '<b>' + label + '</b> ' + info + '<br>' +
+      '<a href="/file?name=' + label + '.mjpeg" style="color:#4f4">↓ MJPEG</a> &nbsp; ' +
+      '<a href="/file?name=' + label + '.wav"   style="color:#4af">↓ WAV</a> &nbsp; ' +
+      '<a href="/file?name=' + label + '.json"  style="color:#fa4">↓ JSON</a>' +
+      '</div>';
+  }).join('');
+}
+
+myRefresh();
+</script>
+</body></html>
+)rawliteral");
+}
+
+// ============================================================
+//  URL PARAM PARSER
+// ============================================================
+String myGetParam(const String& myReq, const String& myKey) {
+  String search = myKey + "=";
+  int i = myReq.indexOf(search);
+  if (i < 0) return "";
+  i += search.length();
+  int j = myReq.indexOf('&', i);
+  if (j < 0) j = myReq.indexOf(' ', i);
+  if (j < 0) return myReq.substring(i);
+  return myReq.substring(i, j);
+}
+
+// ============================================================
+//  CAMERA INIT
+// ============================================================
+bool myInitCamera() {
+  camera_config_t cfg;
+  cfg.ledc_channel = LEDC_CHANNEL_0; cfg.ledc_timer = LEDC_TIMER_0;
+  cfg.pin_d0 = Y2_GPIO_NUM;  cfg.pin_d1 = Y3_GPIO_NUM;
+  cfg.pin_d2 = Y4_GPIO_NUM;  cfg.pin_d3 = Y5_GPIO_NUM;
+  cfg.pin_d4 = Y6_GPIO_NUM;  cfg.pin_d5 = Y7_GPIO_NUM;
+  cfg.pin_d6 = Y8_GPIO_NUM;  cfg.pin_d7 = Y9_GPIO_NUM;
+  cfg.pin_xclk     = XCLK_GPIO_NUM;  cfg.pin_pclk  = PCLK_GPIO_NUM;
+  cfg.pin_vsync    = VSYNC_GPIO_NUM;  cfg.pin_href  = HREF_GPIO_NUM;
+  cfg.pin_sccb_sda = SIOD_GPIO_NUM;   cfg.pin_sccb_scl = SIOC_GPIO_NUM;
+  cfg.pin_pwdn     = PWDN_GPIO_NUM;   cfg.pin_reset = RESET_GPIO_NUM;
+  cfg.xclk_freq_hz = 20000000;
+  cfg.pixel_format = PIXFORMAT_JPEG;
+  cfg.frame_size   = FRAMESIZE_QVGA;  // 320x240
+  cfg.jpeg_quality = 12;
+  cfg.fb_count     = 2;
+  cfg.fb_location  = psramFound() ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM;
+  cfg.grab_mode    = CAMERA_GRAB_LATEST;
+  if (esp_camera_init(&cfg) != ESP_OK) return false;
+  sensor_t* s = esp_camera_sensor_get();
+  s->set_gain_ctrl(s, 1);
+  s->set_exposure_ctrl(s, 1);
+  Serial.println("[Camera] OK — QVGA JPEG");
+  return true;
+}
+
+// ============================================================
+//  SETUP
+// ============================================================
+void setup() {
+  Serial.begin(115200);
+
+  // SD card
+  if (!SD.begin(MY_SD_CS)) {
+    Serial.println("[SD] Mount failed — check card");
+    while (1) delay(1000);
+  }
+  Serial.println("[SD] OK");
+
+  // I2S
+  myI2S.setPinsPdmRx(MY_PDM_CLK_PIN, MY_PDM_DAT_PIN);
+  if (!myI2S.begin(I2S_MODE_PDM_RX, MY_SAMPLE_RATE,
+                   I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
+    Serial.println("[Audio] I2S init failed");
+  } else {
+    Serial.println("[Audio] I2S OK");
+  }
+
+  // Camera
+  if (!myInitCamera()) {
+    Serial.println("[Camera] FATAL"); while (1) delay(1000);
+  }
+
+  // WiFi
+  WiFi.begin(mySsid, myPassword);
+  Serial.print("[WiFi] Connecting");
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.printf("\n[WiFi] http://%s/\n", WiFi.localIP().toString().c_str());
+
+  myServer.begin();
+}
+
+// ============================================================
+//  LOOP
+// ============================================================
+void loop() {
+  WiFiClient myClient = myServer.available();
+  if (!myClient) return;
+
+  String myReq = myClient.readStringUntil('\r');
+  // Drain remaining headers
+  while (myClient.readStringUntil('\n') != "\r") {}
+
+  Serial.println("[HTTP] " + myReq);
+
+  if (myReq.indexOf("GET /record") >= 0) {
+    int myDur = myGetParam(myReq, "dur").toInt();
+    if (myDur == 0) myDur = MY_DEFAULT_DUR;
+    String myResult = myDoRecord(myDur);
+    myClient.printf("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                    "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n");
+    myClient.println(myResult);
+
+  } else if (myReq.indexOf("GET /list") >= 0) {
+    String myList = myListRecordings();
+    myClient.printf("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                    "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n");
+    myClient.println(myList);
+
+  } else if (myReq.indexOf("GET /file") >= 0) {
+    String myName = myGetParam(myReq, "name");
+    myServeFile(myClient, myName);
+
+  } else {
+    mySendPage(myClient);
+  }
+
+  myClient.stop();
+}

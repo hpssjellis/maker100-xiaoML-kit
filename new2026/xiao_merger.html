@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>XIAO Recording Merger</title>
+<style>
+  body { background:#111; color:#eee; font-family:sans-serif; text-align:center; padding:20px; margin:0; }
+  h2   { color:#4f4; }
+  .myBox { border:1px solid #444; border-radius:6px; padding:16px; margin:12px auto; max-width:640px; text-align:left; }
+  label  { display:block; margin:8px 0 4px; color:#aaa; font-size:0.9em; }
+  input[type=file] { background:#222; color:#eee; border:1px solid #555; padding:6px; width:100%; box-sizing:border-box; }
+  button { background:#2a6; color:#fff; border:none; padding:10px 28px; font-size:1em; border-radius:4px; cursor:pointer; margin:6px; }
+  button:disabled { background:#444; cursor:default; }
+  #myCanvas   { border:2px solid #4f4; display:block; margin:12px auto; }
+  #myStatus   { color:#fa4; min-height:1.4em; }
+  #myProgress { color:#4af; font-size:0.9em; min-height:1.2em; }
+  .myInfo     { font-size:0.85em; color:#888; margin-top:4px; }
+  a.myDl      { display:inline-block; background:#246; color:#4af; padding:8px 20px;
+                border-radius:4px; text-decoration:none; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2>XIAO ESP32S3 Recording Merger</h2>
+<p style="color:#888">Load MJPEG + WAV files from your SD card, preview, then export as video.</p>
+
+<!-- ── File loading ── -->
+<div class="myBox">
+  <b>Step 1 — Load files</b>
+  <label>MJPEG file (rec_NNN.mjpeg)</label>
+  <input type="file" id="myMjpegFile" accept=".mjpeg,.bin" onchange="myLoadMjpeg(this)">
+  <div class="myInfo" id="myMjpegInfo">No file loaded</div>
+
+  <label style="margin-top:14px">WAV file (rec_NNN.wav)</label>
+  <input type="file" id="myWavFile" accept=".wav,audio/*" onchange="myLoadWav(this)">
+  <div class="myInfo" id="myWavInfo">No file loaded</div>
+</div>
+
+<!-- ── Preview ── -->
+<div class="myBox">
+  <b>Step 2 — Preview</b><br><br>
+  <canvas id="myCanvas" width="320" height="240"></canvas>
+  <br>
+  <audio id="myAudio" controls style="width:100%;margin-top:8px"></audio>
+  <br>
+  <button id="myPlayBtn" onclick="myPlay()" disabled>▶ Play Preview</button>
+  <button id="myStopBtn" onclick="myStop()" disabled>⏹ Stop</button>
+  <p id="myStatus">Load both files to enable preview</p>
+</div>
+
+<!-- ── Export ── -->
+<div class="myBox">
+  <b>Step 3 — Export</b><br><br>
+  <button id="myExportBtn" onclick="myExport()" disabled>⬇ Export Video</button>
+  <p id="myProgress"></p>
+  <div id="myDownloadDiv"></div>
+  <p class="myInfo">
+    Chrome 130+ → saves as .mp4 (plays natively on Windows)<br>
+    Other browsers → saves as .webm (install "Web Media Extensions" from Microsoft Store)
+  </p>
+</div>
+
+<script>
+// ============================================================
+//  State
+// ============================================================
+let myFrames    = [];   // [{tsMs, jpegBlob, jpegUrl}]
+let myMeta      = {};   // parsed from MJPEG header
+let myWavBlob   = null;
+let myWavUrl    = null;
+let myPlaying   = false;
+let myPlayTimer = null;
+let myRecorder  = null;
+let myRecChunks = [];
+
+const myCanvas = document.getElementById('myCanvas');
+const myCtx    = myCanvas.getContext('2d');
+const myAudio  = document.getElementById('myAudio');
+
+// ============================================================
+//  MJPEG PARSER
+//
+//  Header (16 bytes):
+//    [0..3]  "MJPG"
+//    [4..7]  uint32 frame_count
+//    [8..11] uint32 target_fps
+//    [12..15] uint32 duration_ms
+//
+//  Each frame:
+//    [0..3]  uint32 timestamp_ms
+//    [4..7]  uint32 jpeg_length
+//    [8..]   jpeg bytes
+// ============================================================
+async function myLoadMjpeg(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  document.getElementById('myMjpegInfo').textContent = 'Parsing...';
+  const buf = await file.arrayBuffer();
+  const view = new DataView(buf);
+
+  // Check magic
+  const magic = String.fromCharCode(
+    view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+  if (magic !== 'MJPG') {
+    document.getElementById('myMjpegInfo').textContent = 'ERROR: not a valid MJPG file (magic mismatch)';
+    return;
+  }
+
+  const frameCount = view.getUint32(4,  true);
+  const targetFps  = view.getUint32(8,  true);
+  const durMs      = view.getUint32(12, true);
+
+  myMeta = { frameCount, targetFps, durMs };
+
+  // Parse frames
+  myFrames = [];
+  let pos = 16;  // after header
+  while (pos + 8 <= buf.byteLength) {
+    const tsMs    = view.getUint32(pos,   true);
+    const jpegLen = view.getUint32(pos+4, true);
+    pos += 8;
+    if (pos + jpegLen > buf.byteLength) break;
+    const jpegBytes = new Uint8Array(buf, pos, jpegLen);
+    const jpegBlob  = new Blob([jpegBytes], { type: 'image/jpeg' });
+    const jpegUrl   = URL.createObjectURL(jpegBlob);
+    myFrames.push({ tsMs, jpegBlob, jpegUrl });
+    pos += jpegLen;
+  }
+
+  const actualFps = myFrames.length / (durMs / 1000);
+  document.getElementById('myMjpegInfo').textContent =
+    myFrames.length + ' frames parsed, ' + (durMs/1000).toFixed(1) + 's, ' +
+    actualFps.toFixed(1) + ' fps actual';
+
+  myCheckReady();
+}
+
+// ============================================================
+//  WAV LOADER
+// ============================================================
+async function myLoadWav(input) {
+  const file = input.files[0];
+  if (!file) return;
+  myWavBlob = file;
+  myWavUrl  = URL.createObjectURL(file);
+  myAudio.src = myWavUrl;
+  document.getElementById('myWavInfo').textContent =
+    file.name + ' — ' + (file.size / 1024).toFixed(1) + ' KB';
+  myCheckReady();
+}
+
+// ============================================================
+//  ENABLE BUTTONS WHEN BOTH LOADED
+// ============================================================
+function myCheckReady() {
+  const ready = myFrames.length > 0 && myWavBlob !== null;
+  document.getElementById('myPlayBtn').disabled   = !ready;
+  document.getElementById('myExportBtn').disabled = !ready;
+  if (ready) {
+    document.getElementById('myStatus').textContent =
+      'Ready — ' + myFrames.length + ' frames + WAV loaded';
+  }
+}
+
+// ============================================================
+//  PREVIEW PLAYBACK
+//  Draws frames to canvas at their recorded timestamps,
+//  plays WAV audio in sync.
+// ============================================================
+function myPlay() {
+  if (myPlaying || myFrames.length === 0) return;
+  myPlaying = true;
+  document.getElementById('myPlayBtn').disabled = true;
+  document.getElementById('myStopBtn').disabled = false;
+  document.getElementById('myStatus').textContent = 'Playing...';
+
+  myAudio.currentTime = 0;
+  myAudio.play();
+
+  let myStartWall = performance.now();
+  let myFi = 0;
+
+  function myDrawNext() {
+    if (!myPlaying || myFi >= myFrames.length) {
+      myStop();
+      return;
+    }
+
+    const myElapsed = performance.now() - myStartWall;
+    const myFrame   = myFrames[myFi];
+
+    // Wait until this frame's timestamp
+    if (myElapsed < myFrame.tsMs) {
+      myPlayTimer = setTimeout(myDrawNext, myFrame.tsMs - myElapsed);
+      return;
+    }
+
+    // Draw frame
+    const img = new Image();
+    img.onload = () => {
+      myCtx.drawImage(img, 0, 0, myCanvas.width, myCanvas.height);
+    };
+    img.src = myFrame.jpegUrl;
+    myFi++;
+
+    // Schedule next frame
+    if (myFi < myFrames.length) {
+      const myDelay = myFrames[myFi].tsMs - myElapsed;
+      myPlayTimer = setTimeout(myDrawNext, Math.max(0, myDelay));
+    } else {
+      myPlayTimer = setTimeout(myStop, 500);
+    }
+  }
+
+  myPlayTimer = setTimeout(myDrawNext, 0);
+}
+
+function myStop() {
+  myPlaying = false;
+  if (myPlayTimer) clearTimeout(myPlayTimer);
+  myAudio.pause();
+  myAudio.currentTime = 0;
+  document.getElementById('myPlayBtn').disabled   = false;
+  document.getElementById('myStopBtn').disabled   = true;
+  document.getElementById('myStatus').textContent = 'Stopped';
+}
+
+// ============================================================
+//  EXPORT  — renders all frames into MediaRecorder
+//  Uses canvas + audio element capture stream.
+//  Plays back faster than realtime if possible (1ms between frames)
+//  to keep export quick; timestamps are embedded in the container.
+// ============================================================
+async function myExport() {
+  if (myFrames.length === 0 || !myWavBlob) return;
+
+  document.getElementById('myExportBtn').disabled = true;
+  document.getElementById('myProgress').textContent = 'Preparing export...';
+  document.getElementById('myDownloadDiv').innerHTML = '';
+
+  // Pick best MIME type
+  const myMp4Mime  = 'video/mp4;codecs=avc1,mp4a.40.2';
+  const myWebmMime = 'video/webm;codecs=vp8,opus';
+  const myMime = MediaRecorder.isTypeSupported(myMp4Mime) ? myMp4Mime : myWebmMime;
+  const myExt  = myMime.startsWith('video/mp4') ? 'mp4' : 'webm';
+
+  document.getElementById('myProgress').textContent =
+    'Exporting as .' + myExt + ' — rendering ' + myFrames.length + ' frames...';
+
+  // Set up audio for capture
+  // We create a new Audio element so we don't disturb the preview one
+  const myExpAudio = new Audio(myWavUrl);
+  myExpAudio.volume = 1;
+
+  // Capture streams
+  const myVStream = myCanvas.captureStream(30);
+  await myExpAudio.play();
+  const myAStream = myExpAudio.captureStream
+                  ? myExpAudio.captureStream()
+                  : myExpAudio.mozCaptureStream
+                  ? myExpAudio.mozCaptureStream()
+                  : null;
+
+  const myTracks = [...myVStream.getTracks()];
+  if (myAStream) myAStream.getAudioTracks().forEach(t => myTracks.push(t));
+  const myCombined = new MediaStream(myTracks);
+
+  myRecChunks = [];
+  myRecorder = new MediaRecorder(myCombined, { mimeType: myMime });
+  myRecorder.ondataavailable = e => { if (e.data.size > 0) myRecChunks.push(e.data); };
+
+  myRecorder.onstop = () => {
+    myExpAudio.pause();
+    const blob = new Blob(myRecChunks, { type: myMime });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'xiao_recording.' + myExt;
+    a.className = 'myDl';
+    a.textContent = '⬇ Download xiao_recording.' + myExt +
+                    ' (' + (blob.size/1024).toFixed(0) + ' KB)';
+    document.getElementById('myDownloadDiv').appendChild(a);
+    document.getElementById('myProgress').textContent = 'Export complete ✔';
+    document.getElementById('myExportBtn').disabled = false;
+  };
+
+  myRecorder.start();
+
+  // Render frames at their recorded timestamps (wall-clock accurate)
+  const myExportStart = performance.now();
+
+  for (let i = 0; i < myFrames.length; i++) {
+    const myFrame = myFrames[i];
+
+    // Wait until this frame's recorded timestamp
+    const myTarget = myExportStart + myFrame.tsMs;
+    const myNow    = performance.now();
+    if (myTarget > myNow) {
+      await new Promise(r => setTimeout(r, myTarget - myNow));
+    }
+
+    // Draw frame to canvas (MediaRecorder captures this)
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        myCtx.drawImage(img, 0, 0, myCanvas.width, myCanvas.height);
+        resolve();
+      };
+      img.src = myFrame.jpegUrl;
+    });
+
+    document.getElementById('myProgress').textContent =
+      'Exporting... frame ' + (i+1) + '/' + myFrames.length;
+  }
+
+  // Let audio finish if longer than video
+  const myElapsed = performance.now() - myExportStart;
+  const myRemain  = myMeta.durMs - myElapsed;
+  if (myRemain > 0) await new Promise(r => setTimeout(r, myRemain));
+
+  myRecorder.stop();
+}
+</script>
+</body>
+</html>
