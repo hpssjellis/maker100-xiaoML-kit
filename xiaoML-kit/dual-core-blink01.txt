@@ -18,6 +18,7 @@
 // ---------- Shared mutexes — one per shared resource --------
 SemaphoreHandle_t serialMutex;
 SemaphoreHandle_t ledMutex;
+SemaphoreHandle_t adcMutex;     // ADC is shared hardware — protect it too
 
 // ============================================================
 //  Helper: blink LED_BUILTIN for 50 ms (thread-safe)
@@ -34,7 +35,20 @@ void blinkLED() {
 }
 
 // ============================================================
-//  Task running on Core 0
+//  Helper: thread-safe analogRead
+//  The ESP32-S3 ADC is shared hardware — simultaneous calls
+//  from two cores corrupt each other's results.
+// ============================================================
+int safeAnalogRead(uint8_t pin) {
+  int value = 0;
+  if (xSemaphoreTake(adcMutex, portMAX_DELAY)) {
+    value = analogRead(pin);
+    xSemaphoreGive(adcMutex);
+  }
+  return value;
+}
+
+
 //  Prints a hello every 5 seconds
 // ============================================================
 void otherCoreTask(void * parameter) {
@@ -45,8 +59,8 @@ void otherCoreTask(void * parameter) {
     // 1. Blink
     blinkLED();
 
-    // 2. Read A0 (analogRead is safe to call from any core)
-    int adcValue = analogRead(A0);
+    // 2. Read A0 safely — ADC is shared hardware
+    int adcValue = safeAnalogRead(A0);
 
     // 3. Print
     if (xSemaphoreTake(serialMutex, portMAX_DELAY)) {
@@ -86,6 +100,7 @@ void setup() {
   // Create the mutex before launching any task
   serialMutex = xSemaphoreCreateMutex();
   ledMutex    = xSemaphoreCreateMutex();
+  adcMutex    = xSemaphoreCreateMutex();
 
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -118,9 +133,10 @@ void loop() {
   // Blink first, then print
   blinkLED();
 
-  // Read the analogue pin.  On the XIAO ESP32-S3 A0 = GPIO 1.
+  // Read the analogue pin safely — ADC is shared hardware.
+  // On the XIAO ESP32-S3 A0 = GPIO 1.
   // analogRead() returns 0-4095 (12-bit ADC).
-  int adcValue = analogRead(A0);
+  int adcValue = safeAnalogRead(A0);
 
   // Grab the mutex before printing
   if (xSemaphoreTake(serialMutex, portMAX_DELAY)) {
