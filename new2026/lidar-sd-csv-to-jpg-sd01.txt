@@ -14,19 +14,19 @@ uint8_t* canvas;
 void setup() {
   Serial.begin(115200);
   
-  // 1. Initialize SD Card (XIAO ESP32S3 Pin 21) [cite: 16, 34]
+  // 1. Initialize SD Card (XIAO ESP32S3 Pin 21) 
   if (!SD.begin(21)) {
     Serial.println("SD initialization failed!");
     return;
   }
 
-  // 2. Allocate Canvas in PSRAM [cite: 15]
+  // 2. Allocate Canvas in PSRAM
   canvas = (uint8_t*)ps_malloc(MAP_SIZE * MAP_SIZE);
   if (canvas == NULL) {
     Serial.println("PSRAM allocation failed!");
     return;
   }
-  memset(canvas, 0, MAP_SIZE * MAP_SIZE); // Clear to black [cite: 22]
+  memset(canvas, 0, MAP_SIZE * MAP_SIZE); // Clear to black 
 
   // 3. Process the CSV and Draw to Canvas
   processLidarCSV("/lidar_data.csv");
@@ -38,13 +38,13 @@ void setup() {
 }
 
 void processLidarCSV(const char* path) {
-  File file = SD.open(path); [cite: 5, 36]
+  File file = SD.open(path); 
   if (!file) {
     Serial.println("Failed to open CSV");
     return;
   }
 
-  // Skip header if it exists [cite: 37]
+  // Skip header if it exists 
   if (file.available()) file.readStringUntil('\n');
 
   while (file.available()) {
@@ -67,27 +67,27 @@ void processLidarCSV(const char* path) {
       }
     }
   }
-  file.close(); [cite: 9, 40]
+  file.close(); 
 }
 
 void saveCanvasAsJpeg(const char* path) {
-  // Create a fake camera frame buffer structure to use the internal encoder [cite: 17]
+  // Create a fake camera frame buffer structure to use the internal encoder
   camera_fb_t fb;
   fb.buf = canvas;
   fb.len = MAP_SIZE * MAP_SIZE;
   fb.width = MAP_SIZE;
   fb.height = MAP_SIZE;
-  fb.format = PIXFORMAT_GRAYSCALE; [cite: 15]
+  fb.format = PIXFORMAT_GRAYSCALE; 
 
   uint8_t * out_jpg_ptr = NULL;
   size_t out_jpg_len = 0;
 
   // Use the ESP32-S3 hardware-aware converter
   if (frame2jpg(&fb, 80, &out_jpg_ptr, &out_jpg_len)) {
-    File file = SD.open(path, FILE_WRITE); [cite: 5, 36]
+    File file = SD.open(path, FILE_WRITE); 
     if (file) {
-      file.write(out_jpg_ptr, out_jpg_len); [cite: 7]
-      file.close(); [cite: 40]
+      file.write(out_jpg_ptr, out_jpg_len);
+      file.close(); 
       Serial.printf("JPEG saved to %s (%u bytes)\n", path, out_jpg_len);
     }
     free(out_jpg_ptr); // Important to free the allocated JPEG buffer
