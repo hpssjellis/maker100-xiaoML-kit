@@ -2,8 +2,8 @@
 #include "ESP_I2S.h"
 
 // --- WiFi ---
-const char* mySsid = "YOUR-SSID";
-const char* myPassword = "YOUR-PASSWORD";
+const char* mySsid = "YOUR_SSID";
+const char* myPassword = "YOUR_PASSWORD";
 
 // --- Server ---
 WiFiServer myServer(80);
@@ -98,7 +98,7 @@ void mySendPage(WiFiClient &myClient) {
   myClient.println("    let myUrl = URL.createObjectURL(myBlob);");
   myClient.println("    let myA = document.createElement('a');");
   myClient.println("    myA.href = myUrl;");
-  myClient.println("    myA.download = 'myRecording.webm';");  // drag file to a webpage or right click open with media player
+  myClient.println("    myA.download = 'myRecording.webm';");  // drag to webpage or force open with media player
   myClient.println("    myA.click();");
   myClient.println("    document.getElementById('myStatus').innerHTML = 'Status: saved ✔';");
   myClient.println("  };");
