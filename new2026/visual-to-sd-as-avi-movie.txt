@@ -1,0 +1,293 @@
+/*
+ * MJPEG AVI recorder for XIAO ESP32S3
+ * Saves standard AVI files playable in VLC, Windows Media Player, etc.
+ * Note: AVI header requires knowing frame count & size in advance,
+ * so we write placeholders and patch them when the file is closed.
+ */
+
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include "esp_timer.h"
+
+#define PWDN_GPIO_NUM     -1
+#define RESET_GPIO_NUM    -1
+#define XCLK_GPIO_NUM     10
+#define SIOD_GPIO_NUM     40
+#define SIOC_GPIO_NUM     39
+#define Y9_GPIO_NUM       48
+#define Y8_GPIO_NUM       11
+#define Y7_GPIO_NUM       12
+#define Y6_GPIO_NUM       14
+#define Y5_GPIO_NUM       16
+#define Y4_GPIO_NUM       18
+#define Y3_GPIO_NUM       17
+#define Y2_GPIO_NUM       15
+#define VSYNC_GPIO_NUM    38
+#define HREF_GPIO_NUM     47
+#define PCLK_GPIO_NUM     13
+
+const int SD_PIN_CS = 21;
+const int FRAME_WIDTH  = 240;
+const int FRAME_HEIGHT = 240;
+const int FPS          = 10;   // Target FPS (used in header; actual may vary)
+
+unsigned long myDurationMs = 5000;
+unsigned long myPauseMs    = 5000;
+
+File videoFile;
+bool camera_sign = false;
+bool sd_sign     = false;
+int  imageCount  = 0;
+
+// ── AVI / RIFF helpers ───────────────────────────────────────────────
+
+void writeU32LE(File &f, uint32_t v) {
+  f.write((uint8_t)(v      ));
+  f.write((uint8_t)(v >>  8));
+  f.write((uint8_t)(v >> 16));
+  f.write((uint8_t)(v >> 24));
+}
+
+void writeFourCC(File &f, const char *s) {
+  f.write((uint8_t)s[0]);
+  f.write((uint8_t)s[1]);
+  f.write((uint8_t)s[2]);
+  f.write((uint8_t)s[3]);
+}
+
+// Positions of fields we must patch after recording
+uint32_t pos_riffSize   = 0;   // RIFF chunk size  (offset 4)
+uint32_t pos_aviFrames  = 0;   // avih TotalFrames (offset 48 inside avih)
+uint32_t pos_strnFrames = 0;   // strh Length      (inside strh)
+uint32_t pos_moviSize   = 0;   // movi LIST size
+
+void writeAviHeader(File &f, uint32_t fps, uint32_t w, uint32_t h) {
+  uint32_t usPerFrame = 1000000UL / fps;
+
+  // RIFF AVI
+  writeFourCC(f, "RIFF");
+  pos_riffSize = f.position();
+  writeU32LE(f, 0);             // placeholder: total file size - 8
+  writeFourCC(f, "AVI ");
+
+  // LIST hdrl
+  writeFourCC(f, "LIST");
+  writeU32LE(f, 192);           // hdrl size (fixed for one stream)
+  writeFourCC(f, "hdrl");
+
+  // avih (56 bytes)
+  writeFourCC(f, "avih");
+  writeU32LE(f, 56);
+  writeU32LE(f, usPerFrame);    // MicroSecPerFrame
+  writeU32LE(f, 0);             // MaxBytesPerSec (0 = unspecified)
+  writeU32LE(f, 0);             // PaddingGranularity
+  writeU32LE(f, 0x10);          // Flags: AVIF_HASINDEX
+  pos_aviFrames = f.position();
+  writeU32LE(f, 0);             // TotalFrames — patched later
+  writeU32LE(f, 0);             // InitialFrames
+  writeU32LE(f, 1);             // Streams
+  writeU32LE(f, 0);             // SuggestedBufferSize
+  writeU32LE(f, w);             // Width
+  writeU32LE(f, h);             // Height
+  writeU32LE(f, 0); writeU32LE(f, 0); writeU32LE(f, 0); writeU32LE(f, 0); // Reserved
+
+  // LIST strl
+  writeFourCC(f, "LIST");
+  writeU32LE(f, 116);           // strl size
+  writeFourCC(f, "strl");
+
+  // strh (video stream header, 56 bytes)
+  writeFourCC(f, "strh");
+  writeU32LE(f, 56);
+  writeFourCC(f, "vids");       // fccType
+  writeFourCC(f, "MJPG");       // fccHandler
+  writeU32LE(f, 0);             // Flags
+  writeU32LE(f, 0);             // Priority
+  writeU32LE(f, 0);             // InitialFrames
+  writeU32LE(f, 1);             // Scale
+  writeU32LE(f, fps);           // Rate  (Rate/Scale = FPS)
+  writeU32LE(f, 0);             // Start
+  pos_strnFrames = f.position();
+  writeU32LE(f, 0);             // Length (frames) — patched later
+  writeU32LE(f, 0);             // SuggestedBufferSize
+  writeU32LE(f, 0xFFFFFFFF);   // Quality
+  writeU32LE(f, 0);             // SampleSize
+  // rcFrame (short x4)
+  f.write((uint8_t)0); f.write((uint8_t)0);
+  f.write((uint8_t)0); f.write((uint8_t)0);
+  f.write((uint8_t)(w & 0xFF)); f.write((uint8_t)(w >> 8));
+  f.write((uint8_t)(h & 0xFF)); f.write((uint8_t)(h >> 8));
+
+  // strf (BITMAPINFOHEADER, 40 bytes)
+  writeFourCC(f, "strf");
+  writeU32LE(f, 40);
+  writeU32LE(f, 40);            // biSize
+  writeU32LE(f, w);             // biWidth
+  writeU32LE(f, h);             // biHeight
+  f.write((uint8_t)1); f.write((uint8_t)0);   // biPlanes = 1
+  f.write((uint8_t)24); f.write((uint8_t)0);  // biBitCount = 24
+  writeFourCC(f, "MJPG");       // biCompression
+  writeU32LE(f, w * h * 3);    // biSizeImage
+  writeU32LE(f, 0);             // biXPelsPerMeter
+  writeU32LE(f, 0);             // biYPelsPerMeter
+  writeU32LE(f, 0);             // biClrUsed
+  writeU32LE(f, 0);             // biClrImportant
+
+  // LIST movi — frames go inside here
+  writeFourCC(f, "LIST");
+  pos_moviSize = f.position();
+  writeU32LE(f, 0);             // movi size — patched later
+  writeFourCC(f, "movi");
+}
+
+// ── Index entry structure ────────────────────────────────────────────
+
+struct IdxEntry {
+  uint32_t offset;  // offset from start of movi data (after "movi" fourcc)
+  uint32_t size;
+};
+
+const int MAX_FRAMES = 500;     // raise if your clip is longer
+IdxEntry idx[MAX_FRAMES];
+int frameCount = 0;
+uint32_t moviDataStart = 0;     // file position right after "movi" fourcc
+
+// Write one JPEG frame as a "00dc" chunk; record index entry
+void writeFrame(File &f, uint8_t *buf, size_t len) {
+  if (frameCount >= MAX_FRAMES) return;
+
+  // Pad JPEG to even length (AVI requirement)
+  size_t paddedLen = (len + 1) & ~1u;
+
+  // Record offset from moviDataStart (points at the "00dc" fourcc)
+  idx[frameCount].offset = (uint32_t)(f.position() - moviDataStart);
+  idx[frameCount].size   = (uint32_t)len;
+  frameCount++;
+
+  writeFourCC(f, "00dc");
+  writeU32LE(f, (uint32_t)len);
+  f.write(buf, len);
+  if (paddedLen > len) f.write((uint8_t)0);   // padding byte
+}
+
+// Patch header & append index, then close
+void finalizeAvi(File &f) {
+  uint32_t moviEnd  = f.position();
+  uint32_t moviSize = (uint32_t)(moviEnd - moviDataStart) + 4; // +4 for "movi"
+
+  // Write idx1 chunk
+  writeFourCC(f, "idx1");
+  writeU32LE(f, (uint32_t)frameCount * 16);
+  for (int i = 0; i < frameCount; i++) {
+    writeFourCC(f, "00dc");
+    writeU32LE(f, 0x10);           // AVIIF_KEYFRAME
+    writeU32LE(f, idx[i].offset);
+    writeU32LE(f, idx[i].size);
+  }
+
+  uint32_t fileEnd = f.position();
+
+  // Patch RIFF size
+  f.seek(pos_riffSize);
+  writeU32LE(f, fileEnd - 8);
+
+  // Patch TotalFrames
+  f.seek(pos_aviFrames);
+  writeU32LE(f, (uint32_t)frameCount);
+
+  // Patch strh Length
+  f.seek(pos_strnFrames);
+  writeU32LE(f, (uint32_t)frameCount);
+
+  // Patch movi size
+  f.seek(pos_moviSize);
+  writeU32LE(f, moviSize);
+
+  f.close();
+}
+
+// ── Arduino setup / loop ─────────────────────────────────────────────
+
+void setup() {
+  Serial.begin(115200);
+
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer   = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM; config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM; config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM; config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM; config.pin_d7 = Y9_GPIO_NUM;
+  config.pin_xclk     = XCLK_GPIO_NUM;
+  config.pin_pclk     = PCLK_GPIO_NUM;
+  config.pin_vsync    = VSYNC_GPIO_NUM;
+  config.pin_href     = HREF_GPIO_NUM;
+  config.pin_sscb_sda = SIOD_GPIO_NUM;
+  config.pin_sscb_scl = SIOC_GPIO_NUM;
+  config.pin_pwdn     = PWDN_GPIO_NUM;
+  config.pin_reset    = RESET_GPIO_NUM;
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+  config.frame_size   = FRAMESIZE_240X240;
+  config.grab_mode    = CAMERA_GRAB_WHEN_EMPTY;
+  config.fb_location  = CAMERA_FB_IN_PSRAM;
+  config.jpeg_quality = 12;
+  config.fb_count     = 1;
+
+  if (esp_camera_init(&config) != ESP_OK) {
+    Serial.println("Camera init failed!");
+    return;
+  }
+  camera_sign = true;
+
+  if (!SD.begin(SD_PIN_CS)) {
+    Serial.println("SD init failed!");
+    return;
+  }
+  if (SD.cardType() == CARD_NONE) {
+    Serial.println("No SD card!");
+    return;
+  }
+  sd_sign = true;
+
+  Serial.println("Ready. Recording " + String(myDurationMs) +
+                 "ms clips every " + String(myPauseMs) + "ms.");
+}
+
+void loop() {
+  if (!camera_sign || !sd_sign) return;
+
+  static unsigned long lastCapture = 0;
+  unsigned long now = millis();
+  if ((now - lastCapture) < myPauseMs) return;
+  lastCapture = now;
+
+  // Open file
+  char filename[32];
+  sprintf(filename, "/video%d.avi", imageCount++);
+  videoFile = SD.open(filename, FILE_WRITE);
+  if (!videoFile) { Serial.println("File open failed!"); return; }
+
+  // Write AVI header (placeholders)
+  frameCount = 0;
+  writeAviHeader(videoFile, FPS, FRAME_WIDTH, FRAME_HEIGHT);
+  moviDataStart = videoFile.position(); // right after "movi" fourcc
+
+  Serial.printf("Recording: %s\n", filename);
+  unsigned long recStart = millis();
+
+  while ((millis() - recStart) < myDurationMs) {
+    camera_fb_t *fb = esp_camera_fb_get();
+    if (!fb) { Serial.println("Frame error!"); break; }
+    writeFrame(videoFile, fb->buf, fb->len);
+    esp_camera_fb_return(fb);
+  }
+
+  // Patch header + write index + close
+  finalizeAvi(videoFile);
+  Serial.printf("Saved %s (%d frames)\n", filename, frameCount);
+  Serial.println("Next clip in " + String(myPauseMs) + "ms.");
+  delay(myPauseMs);
+}
