@@ -1,0 +1,371 @@
+// ============================================================
+//  xiao_cam_sound_stream_FIXED_PLUS.ino
+//  Improved unified camera + audio streamer for XIAO ESP32S3 Sense
+// ============================================================
+
+#include "WiFi.h"
+#include "esp_camera.h"
+#include "ESP_I2S.h"
+
+// ─── WiFi ───────────────────────────────────────────────────
+const char* mySsid     = "YOUR-SSID";
+const char* myPassword = "YOUR-PASSWORD";
+
+// ─── Camera pins ────────────────────────────────────────────
+#define PWDN_GPIO_NUM   -1
+#define RESET_GPIO_NUM  -1
+#define XCLK_GPIO_NUM   10
+#define SIOD_GPIO_NUM   40
+#define SIOC_GPIO_NUM   39
+#define Y9_GPIO_NUM     48
+#define Y8_GPIO_NUM     11
+#define Y7_GPIO_NUM     12
+#define Y6_GPIO_NUM     14
+#define Y5_GPIO_NUM     16
+#define Y4_GPIO_NUM     18
+#define Y3_GPIO_NUM     17
+#define Y2_GPIO_NUM     15
+#define VSYNC_GPIO_NUM  38
+#define HREF_GPIO_NUM   47
+#define PCLK_GPIO_NUM   13
+
+// ─── Audio ──────────────────────────────────────────────────
+#define MY_PDM_CLK_PIN  42
+#define MY_PDM_DAT_PIN  41
+#define MY_SAMPLE_RATE  16000
+#define MY_CHUNK_SAMPLES 256
+
+// ─── Servers ────────────────────────────────────────────────
+WiFiServer myVideoServer(80);
+WiFiServer myAudioServer(81);
+
+// ─── I2S ────────────────────────────────────────────────────
+I2SClass myI2S;
+
+// ============================================================
+// WAV HEADER
+// ============================================================
+void mySendWavHeader(WiFiClient& myClient) {
+  uint8_t h[44];
+  uint32_t mySR     = MY_SAMPLE_RATE;
+  uint16_t myBits   = 16;
+  uint16_t myCh     = 1;
+  uint32_t myBR     = mySR * myCh * myBits / 8;
+  uint16_t myBA     = myCh * myBits / 8;
+  uint32_t myDS     = 0xFFFFFFFF;
+  uint32_t myFS     = myDS + 36;
+
+  memcpy(h, "RIFF", 4); memcpy(h+4, &myFS, 4);
+  memcpy(h+8, "WAVE", 4); memcpy(h+12, "fmt ", 4);
+
+  uint32_t fmtSz = 16; memcpy(h+16, &fmtSz, 4);
+  uint16_t fmt1 = 1;   memcpy(h+20, &fmt1, 2);
+
+  memcpy(h+22, &myCh, 2); memcpy(h+24, &mySR, 4);
+  memcpy(h+28, &myBR, 4); memcpy(h+32, &myBA, 2);
+  memcpy(h+34, &myBits, 2);
+
+  memcpy(h+36, "data", 4); memcpy(h+40, &myDS, 4);
+
+  myClient.write(h, 44);
+}
+
+// ============================================================
+// AUDIO TASK (Core 0)
+// ============================================================
+void myAudioTask(void* /*param*/) {
+  Serial.println("[Audio] Task started");
+
+  int16_t myBuf[MY_CHUNK_SAMPLES];
+
+  for (;;) {
+    WiFiClient myClient = myAudioServer.available();
+
+    if (myClient) {
+      Serial.println("[Audio] Client connected");
+
+      // Non-blocking header skip
+      unsigned long t0 = millis();
+      while (myClient.connected() && millis() - t0 < 200) {
+        if (myClient.available()) {
+          myClient.readStringUntil('\n');
+          break;
+        }
+        taskYIELD();
+      }
+
+      myClient.println("HTTP/1.1 200 OK");
+      myClient.println("Content-Type: audio/wav");
+      myClient.println("Access-Control-Allow-Origin: *");
+      myClient.println("Connection: keep-alive");
+      myClient.println();
+
+      mySendWavHeader(myClient);
+
+      while (myClient.connected()) {
+
+        for (int i = 0; i < MY_CHUNK_SAMPLES; i++) {
+          int s = myI2S.read();
+          if (s < 0) s = 0;       // FIX: prevent audio clicks
+          myBuf[i] = (int16_t)s;
+        }
+
+        if (!myClient.connected()) break;
+
+        size_t written = myClient.write((uint8_t*)myBuf, MY_CHUNK_SAMPLES * 2);
+        if (written == 0) break;
+
+        taskYIELD(); // smoother than delay(1)
+      }
+
+      myClient.stop();
+      Serial.println("[Audio] Client disconnected");
+    }
+
+    taskYIELD();
+  }
+}
+
+// ============================================================
+// VIDEO STREAM
+// ============================================================
+void myStreamVideo(WiFiClient& myClient) {
+
+  myClient.println("HTTP/1.1 200 OK");
+  myClient.println("Content-Type: multipart/x-mixed-replace; boundary=myframe");
+  myClient.println("Access-Control-Allow-Origin: *");
+  myClient.println("Connection: keep-alive");
+  myClient.println();
+
+  Serial.println("[Video] Streaming");
+
+  while (myClient.connected()) {
+
+    camera_fb_t* myFb = esp_camera_fb_get();
+    if (!myFb) {
+      vTaskDelay(1);
+      continue;
+    }
+
+    myClient.printf("--myframe\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n", myFb->len);
+    myClient.write(myFb->buf, myFb->len);
+    myClient.println();
+
+    esp_camera_fb_return(myFb);
+
+    vTaskDelay(1); // adaptive pacing
+  }
+
+  myClient.stop();
+  Serial.println("[Video] Client disconnected");
+}
+
+// ============================================================
+// HTML PAGE
+// ============================================================
+void mySendPage(WiFiClient& myClient, const String& myHost) {
+
+  String myAudioUrl = "http://" + myHost;
+  myAudioUrl.replace(":80", "");
+  if (myAudioUrl.indexOf(':', 7) < 0) myAudioUrl += ":81";
+
+  myClient.println("HTTP/1.1 200 OK");
+  myClient.println("Content-Type: text/html");
+  myClient.println("Connection: close");
+  myClient.println();
+
+  myClient.println(R"rawliteral(
+<!DOCTYPE html>
+<html>
+<body style="text-align:center;background:black;color:white;font-family:sans-serif;">
+
+<h2>XIAO ESP32S3 Camera + Audio</h2>
+
+<img id="myImg" src="/stream_video" style="display:none">
+<canvas id="myCanvas" width="320" height="240" style="border:2px solid lime;"></canvas>
+
+<br><br>
+
+<audio id="myAudio" autoplay></audio>
+
+<br><br>
+
+<input type="button" value="⏺ Start Recording" onclick="myStartRec()">
+<input type="button" value="⏹ Stop & Save" onclick="myStopRec()">
+
+<p id="myStatus">Status: live</p>
+
+<script>
+
+let myCanvas = document.getElementById('myCanvas');
+let myCtx    = myCanvas.getContext('2d');
+let myImg    = document.getElementById('myImg');
+let myAudio  = document.getElementById('myAudio');
+
+myImg.onload = function(){
+  myCtx.drawImage(myImg,0,0,myCanvas.width,myCanvas.height);
+};
+
+// FIX: force canvas redraw loop
+setInterval(() => {
+  myCtx.drawImage(myImg, 0, 0, myCanvas.width, myCanvas.height);
+}, 33);
+
+myAudio.src = ')rawliteral");
+
+  myClient.print(myAudioUrl);
+
+  myClient.println(R"rawliteral(';
+
+let myRecorder;
+let myChunks = [];
+let myRecording = false;
+
+function myStartRec(){
+  if(myRecording) return;
+
+  myChunks = [];
+
+  let myVStream = myCanvas.captureStream(10);
+  let myAStream = myAudio.captureStream ? myAudio.captureStream() : null;
+
+  let myTracks = [...myVStream.getTracks()];
+  if(myAStream){
+    myAStream.getAudioTracks().forEach(t => myTracks.push(t));
+  }
+
+  let myCombined = new MediaStream(myTracks);
+
+  myRecorder = new MediaRecorder(myCombined);
+
+  myRecorder.ondataavailable = e => {
+    if(e.data.size > 0) myChunks.push(e.data);
+  };
+
+  myRecorder.onstop = () => {
+    let blob = new Blob(myChunks, {type:'video/webm'});
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'recording.webm';
+    a.click();
+  };
+
+  myRecorder.start();
+  myRecording = true;
+}
+
+function myStopRec(){
+  if(!myRecording) return;
+  myRecorder.stop();
+  myRecording = false;
+}
+
+</script>
+</body>
+</html>
+)rawliteral");
+}
+
+// ============================================================
+// CAMERA INIT
+// ============================================================
+bool myInitCamera() {
+  camera_config_t cfg;
+
+  cfg.ledc_channel = LEDC_CHANNEL_0;
+  cfg.ledc_timer   = LEDC_TIMER_0;
+
+  cfg.pin_d0 = Y2_GPIO_NUM;
+  cfg.pin_d1 = Y3_GPIO_NUM;
+  cfg.pin_d2 = Y4_GPIO_NUM;
+  cfg.pin_d3 = Y5_GPIO_NUM;
+  cfg.pin_d4 = Y6_GPIO_NUM;
+  cfg.pin_d5 = Y7_GPIO_NUM;
+  cfg.pin_d6 = Y8_GPIO_NUM;
+  cfg.pin_d7 = Y9_GPIO_NUM;
+
+  cfg.pin_xclk = XCLK_GPIO_NUM;
+  cfg.pin_pclk = PCLK_GPIO_NUM;
+  cfg.pin_vsync = VSYNC_GPIO_NUM;
+  cfg.pin_href  = HREF_GPIO_NUM;
+
+  cfg.pin_sccb_sda = SIOD_GPIO_NUM;
+  cfg.pin_sccb_scl = SIOC_GPIO_NUM;
+
+  cfg.pin_pwdn  = PWDN_GPIO_NUM;
+  cfg.pin_reset = RESET_GPIO_NUM;
+
+  cfg.xclk_freq_hz = 20000000;
+  cfg.pixel_format = PIXFORMAT_JPEG;
+
+  cfg.frame_size = FRAMESIZE_QVGA;
+  cfg.jpeg_quality = 10;
+  cfg.fb_count = 2;
+  cfg.fb_location = CAMERA_FB_IN_PSRAM;
+
+  if (esp_camera_init(&cfg) != ESP_OK) return false;
+
+  // Optional OV2640 tuning
+  sensor_t* s = esp_camera_sensor_get();
+  s->set_gain_ctrl(s, 1);
+  s->set_exposure_ctrl(s, 1);
+  s->set_brightness(s, 1);
+  s->set_saturation(s, 1);
+
+  return true;
+}
+
+// ============================================================
+// SETUP
+// ============================================================
+void setup() {
+
+  Serial.begin(115200);
+
+  myI2S.setPinsPdmRx(MY_PDM_CLK_PIN, MY_PDM_DAT_PIN);
+  myI2S.begin(I2S_MODE_PDM_RX, MY_SAMPLE_RATE,
+              I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO);
+
+  if (!myInitCamera()) {
+    Serial.println("Camera failed");
+    while(1);
+  }
+
+  WiFi.begin(mySsid, myPassword);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+
+  Serial.println(WiFi.localIP());
+
+  myVideoServer.begin();
+  myAudioServer.begin();
+
+  xTaskCreatePinnedToCore(myAudioTask, "audio", 8192, NULL, 1, NULL, 0);
+}
+
+// ============================================================
+// LOOP
+// ============================================================
+void loop() {
+
+  WiFiClient myClient = myVideoServer.available();
+  if (!myClient) return;
+
+  String myReq = myClient.readStringUntil('\r');
+
+  String myHost = WiFi.localIP().toString();
+  String myLine;
+
+  while ((myLine = myClient.readStringUntil('\n')) != "\r") {
+    if (myLine.startsWith("Host:")) {
+      myHost = myLine.substring(6);
+      myHost.trim();
+    }
+  }
+
+  if (myReq.indexOf("/stream_video") >= 0) {
+    myStreamVideo(myClient);
+  } else {
+    mySendPage(myClient, myHost);
+    myClient.stop();
+  }
+}
