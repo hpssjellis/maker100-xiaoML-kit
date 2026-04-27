@@ -8,10 +8,14 @@ Note: These two links to other sites are also very powerful for the xiaoML kit
 
 1. Easy flash testing at   https://hpssjellis.github.io/xiaoml-kit-esp32-web-tool/public/index.html <br><br>
 2. An advanced page for monitoring variables   https://hpssjellis.github.io/xiaoml-kit-webserial-variable-trace/webtracer.html <br><br>
-3. WiFi Sound Streaming to webpage [sound-wifi-stream02.txt](sound-wifi-stream02.txt)
-4. Dual Core how to use mutex for shared componenets [dual-core-blink01.txt](dual-core-blink01.txt)
-5. Testing wifi web browser full mpeg movie.  [wifi-cam-sound-stream00.txt](wifi-cam-sound-stream00.txt)
-6. ...
+3. WiFi Sound Streaming to webpage [sound-wifi-stream02.txt](sound-wifi-stream02.txt) <br><br>
+4. Dual Core how to use mutex for shared componenets [dual-core-blink01.txt](dual-core-blink01.txt) <br><br>
+5. Testing wifi web browser full mpeg movie.  [wifi-cam-sound-stream00.txt](wifi-cam-sound-stream00.txt) <br><br>
+6. Testing new web Machine Learning on device at [https://github.com/webmcu-ai/on-device-vision-ai/blob/main/firmware.ino](https://github.com/webmcu-ai/on-device-vision-ai/blob/main/firmware.ino) <br><br>
+7. Very powerful full web page with flash code machine learning on device. [https://webmcu-ai.github.io/webmcu-vision-web/index.html](https://webmcu-ai.github.io/webmcu-vision-web/index.html) <br><br>
+8. ...
+
+
 
 
 
