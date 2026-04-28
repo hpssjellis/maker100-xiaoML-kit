@@ -95,7 +95,18 @@ bool nmeaChecksumValid(const char* sentence) {
 // Only edge case to handle: UTC hours 00:00–07:59 roll back into the
 // previous calendar day.
 
-#define PT_OFFSET_HOURS  -8     // Pacific Time, no DST
+// Pacific Time UTC offset.
+//
+// Canada has voted to abolish DST but the legislation is not yet in force
+// as of early 2026, so clocks still shift in the meantime:
+//
+//   PDT (summer): UTC-7   → 2nd Sunday March  to 1st Sunday November
+//   PST (winter): UTC-8   → 1st Sunday November to 2nd Sunday March
+//
+// Change this one number when the rules change, or when you move time zones.
+// Mountain = -7/-6,  Central = -6/-5,  Eastern = -5/-4
+//
+#define PT_OFFSET_HOURS  -7     // PDT (summer, UTC-7) — change to -8 in November
 
 // Returns true if year (20xx) is a leap year
 bool isLeapYear(int y) {
