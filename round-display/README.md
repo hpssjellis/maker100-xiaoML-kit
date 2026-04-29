@@ -28,6 +28,10 @@ also you need the include file called driver.h with this line
 
 then most of the examples from the libraries SeeedStudio_TFT_eSPI ```round display``` should work.
 
+Go to on the Arduino IDE: File-->Examples -->Seeed_GFX--> Round Display--> any example.
+
+It is the same technique for using the ePaper hardware. File-->Examples -->Seeed_GFX--> ePaper--> any example.
+
 The code I have in this folder does work for me.
 
 
