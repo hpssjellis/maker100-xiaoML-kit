@@ -30,6 +30,8 @@ This is not an online course, it is expected to be taught by a teacher or profes
 
 Price list for the equipment I will be using in 2026 [price-2026-00.html](price-2026-00.html) (Many other devices could be used but the videos then will not be accurate for those devices)
 
+Note: April 2026 new Technique [webmcu-ai](https://github.com/webmcu-ai) demo page at [https://webmcu-ai.github.io/webmcu-vision-web/index.html](https://webmcu-ai.github.io/webmcu-vision-web/index.html)
+
 
 
 **Teacher Extras:** [See Appendix A](#appendix-a-teacher-extras---why-not-use-the-xiao-expansion-board-and-round-display)
