@@ -1,0 +1,43 @@
+int myValues[] = {10, 20, 30, 40, 50};
+int mySize = 5;
+int myMultiplier = 2;
+bool myTrigger = true;
+
+void myFinalDisplay(int myTotal) {
+  Serial.print("Final Calculated Value: ");
+  Serial.println(myTotal);
+  if (myTotal > 200) {
+    Serial.println("Outcome: Peak Level");
+  } else {
+    Serial.println("Outcome: Base Level");
+  }
+}
+
+void myDataShift() {
+  int mySum = 0;
+  for (int i = mySize - 1; i >= 0; i--) {
+    Serial.print("Processing Position: ");
+    Serial.println(i);
+    int myTemp = myValues[i] * myMultiplier;
+    mySum = mySum + myTemp;
+    delay(200);
+  }
+  myFinalDisplay(mySum);
+}
+
+void setup() {
+  Serial.begin(9600);
+  delay(1000);
+  Serial.println("--- System Online ---");
+  for (int i = 0; i < mySize; i++) {
+    myValues[i] = myValues[i] - 5;
+  }
+}
+
+void loop() {
+  if (myTrigger) {
+    myDataShift();
+    myTrigger = false;
+    Serial.println("Sequence Finished.");
+  }
+}
