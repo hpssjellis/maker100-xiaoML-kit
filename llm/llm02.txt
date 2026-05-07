@@ -1,0 +1,313 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <TFT_eSPI.h>
+#include <Wire.h>
+#include <ArduinoJson.h>
+#include "ESP_I2S.h"
+
+// =============================
+// WIFI + API
+// =============================
+const char* mySSID     = "YOUR_WIFI";
+const char* myPassword = "YOUR_PASSWORD";
+
+const char* myApiKey   = "sk-YOUR_OPENAI_KEY";
+
+
+// =============================
+// TOUCH
+// =============================
+#define myTouchInt D7
+#define myTouchI2C 0x2e
+
+
+// =============================
+// SCREEN
+// =============================
+#define myScreenWidth  240
+#define myScreenHeight 240
+
+TFT_eSPI myTft = TFT_eSPI();
+
+
+// =============================
+// AUDIO
+// =============================
+I2SClass myI2S;
+
+bool myRecording = false;
+
+uint8_t* myWavBuffer = nullptr;
+size_t myWavSize = 0;
+
+
+// =============================
+// UI
+// =============================
+String myDisplayedText = "Touch screen to record";
+
+
+
+// =======================================================
+// TOUCH CHECK
+// =======================================================
+bool myCheckTouch(int &myTouchX, int &myTouchY){
+
+  if (digitalRead(myTouchInt) != LOW) return false;
+
+  Wire.beginTransmission(myTouchI2C);
+
+  if (Wire.endTransmission() != 0) return false;
+
+  uint8_t myBuf[5];
+
+  Wire.requestFrom(myTouchI2C, 5);
+
+  for (int i=0; i<5; i++){
+    myBuf[i] = Wire.read();
+  }
+
+  if (myBuf[0] == 0x01){
+
+    int myRawX = myBuf[2];
+    int myRawY = myBuf[4];
+
+    myTouchX = myScreenWidth - myRawY;
+    myTouchY = myRawX;
+
+    return true;
+  }
+
+  return false;
+}
+
+
+
+// =======================================================
+// DRAW SCREEN
+// =======================================================
+void myDrawScreen(){
+
+  myTft.fillScreen(TFT_BLACK);
+
+  myTft.setTextColor(TFT_WHITE, TFT_BLACK);
+  myTft.setTextSize(2);
+
+  myTft.setCursor(10, 10);
+  myTft.println("Speech Test");
+
+  myTft.drawRect(40, 180, 160, 40, TFT_CYAN);
+
+  myTft.setCursor(85, 192);
+
+  if (myRecording){
+    myTft.print("STOP");
+  } else {
+    myTft.print("REC");
+  }
+
+  myTft.setTextSize(1);
+  myTft.setCursor(10, 50);
+
+  myTft.println(myDisplayedText);
+}
+
+
+
+// =======================================================
+// WIFI
+// =======================================================
+void myConnectWifi(){
+
+  WiFi.begin(mySSID, myPassword);
+
+  myDisplayedText = "Connecting WiFi...";
+  myDrawScreen();
+
+  while (WiFi.status() != WL_CONNECTED){
+    delay(500);
+  }
+
+  myDisplayedText = "WiFi connected";
+  myDrawScreen();
+
+  delay(1000);
+}
+
+
+
+// =======================================================
+// RECORD AUDIO
+// =======================================================
+void myRecordAudio(){
+
+  myDisplayedText = "Recording 5 sec...";
+  myDrawScreen();
+
+  myWavBuffer = myI2S.recordWAV(5, &myWavSize);
+
+  myDisplayedText = "Audio captured";
+  myDrawScreen();
+
+}
+
+
+
+// =======================================================
+// SEND TO OPENAI STT
+// =======================================================
+void mySendSpeechToText(){
+
+  WiFiClientSecure myClient;
+
+  myClient.setInsecure();
+
+  myDisplayedText = "Uploading...";
+  myDrawScreen();
+
+
+  if (!myClient.connect("api.openai.com", 443)){
+
+    myDisplayedText = "HTTPS failed";
+    myDrawScreen();
+
+    return;
+  }
+
+
+  String myBoundary = "----ESP32BOUNDARY";
+
+
+  String myHeader = "";
+
+  myHeader += "--" + myBoundary + "\r\n";
+  myHeader += "Content-Disposition: form-data; name=\"model\"\r\n\r\n";
+  myHeader += "whisper-1\r\n";
+
+  myHeader += "--" + myBoundary + "\r\n";
+  myHeader += "Content-Disposition: form-data; name=\"file\"; filename=\"speech.wav\"\r\n";
+  myHeader += "Content-Type: audio/wav\r\n\r\n";
+
+  String myFooter = "\r\n--" + myBoundary + "--\r\n";
+
+
+  int myContentLength =
+    myHeader.length() +
+    myWavSize +
+    myFooter.length();
+
+
+  myClient.println("POST /v1/audio/transcriptions HTTP/1.1");
+  myClient.println("Host: api.openai.com");
+  myClient.println("Authorization: Bearer " + String(myApiKey));
+  myClient.println("Content-Type: multipart/form-data; boundary=" + myBoundary);
+  myClient.println("Content-Length: " + String(myContentLength));
+  myClient.println();
+
+
+  myClient.print(myHeader);
+
+  myClient.write(myWavBuffer, myWavSize);
+
+  myClient.print(myFooter);
+
+
+  myDisplayedText = "Waiting...";
+  myDrawScreen();
+
+
+  while (myClient.connected()){
+
+    String myLine = myClient.readStringUntil('\n');
+
+    if (myLine == "\r") break;
+  }
+
+
+  String myResponse = myClient.readString();
+
+
+  DynamicJsonDocument myDoc(4096);
+
+  DeserializationError myError = deserializeJson(myDoc, myResponse);
+
+  if (myError){
+
+    myDisplayedText = "JSON error";
+    myDrawScreen();
+
+    return;
+  }
+
+
+  myDisplayedText = myDoc["text"].as<String>();
+
+  myDrawScreen();
+
+}
+
+
+
+// =======================================================
+// SETUP
+// =======================================================
+void setup(){
+
+  Serial.begin(115200);
+
+  myTft.init();
+  myTft.setRotation(3);
+
+  pinMode(myTouchInt, INPUT_PULLUP);
+
+  Wire.begin();
+
+  myI2S.setPinsPdmRx(42, 41);
+
+  if (!myI2S.begin(
+    I2S_MODE_PDM_RX,
+    16000,
+    I2S_DATA_BIT_WIDTH_16BIT,
+    I2S_SLOT_MODE_MONO)){
+
+    while(1);
+  }
+
+  myDrawScreen();
+
+  myConnectWifi();
+}
+
+
+
+// =======================================================
+// LOOP
+// =======================================================
+void loop(){
+
+  int myTouchX = 0;
+  int myTouchY = 0;
+
+
+  if (myCheckTouch(myTouchX, myTouchY)){
+
+    if (myTouchY > 180){
+
+      delay(250); // debounce
+
+      myRecording = true;
+      myDrawScreen();
+
+      myRecordAudio();
+
+      myRecording = false;
+      myDrawScreen();
+
+      mySendSpeechToText();
+
+    }
+  }
+
+  delay(20);
+}
