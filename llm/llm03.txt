@@ -1,0 +1,490 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <TFT_eSPI.h>
+#include <Wire.h>
+#include <ArduinoJson.h>
+#include "ESP_I2S.h"
+#include "base64.h"
+
+
+// ====================================
+// USER SETTINGS
+// ====================================
+const char* mySSID     = "YOUR_WIFI";
+const char* myPassword = "YOUR_PASSWORD";
+
+const char* myApiKey   = "YOUR_GEMINI_KEY";
+
+
+// ====================================
+// TOUCH
+// ====================================
+#define myTouchInt D7
+#define myTouchI2C 0x2e
+
+
+// ====================================
+// SCREEN
+// ====================================
+#define myScreenWidth  240
+#define myScreenHeight 240
+
+TFT_eSPI myTft = TFT_eSPI();
+
+
+// ====================================
+// AUDIO
+// ====================================
+I2SClass myI2S;
+
+uint8_t* myWavBuffer = nullptr;
+size_t myWavSize = 0;
+
+
+// ====================================
+// UI STATE
+// ====================================
+bool myRecording = false;
+
+String myDisplayedText = "Booting...";
+
+
+
+
+// ========================================================
+// DRAW SCREEN
+// ========================================================
+void myDrawScreen(){
+
+  Serial.println("Drawing screen...");
+
+  myTft.fillScreen(TFT_BLACK);
+
+  myTft.drawRect(0,0,240,240,TFT_DARKGREY);
+
+  myTft.setTextColor(TFT_WHITE, TFT_BLACK);
+  myTft.setTextSize(2);
+
+  myTft.setCursor(10,10);
+  myTft.println("Gemini STT");
+
+
+  myTft.setTextSize(1);
+
+  myTft.setCursor(10,50);
+
+  myTft.println(myDisplayedText);
+
+
+  // Record button
+  if (myRecording){
+    myTft.fillRoundRect(40,180,160,40,8,TFT_RED);
+  } else {
+    myTft.fillRoundRect(40,180,160,40,8,TFT_DARKGREEN);
+  }
+
+  myTft.drawRoundRect(40,180,160,40,8,TFT_WHITE);
+
+  myTft.setTextColor(TFT_WHITE);
+
+  myTft.setTextSize(2);
+
+  myTft.setCursor(90,192);
+
+  if (myRecording){
+    myTft.print("STOP");
+  } else {
+    myTft.print("REC");
+  }
+}
+
+
+
+
+// ========================================================
+// TOUCH
+// ========================================================
+bool myCheckTouch(int &myTouchX, int &myTouchY){
+
+  if (digitalRead(myTouchInt) != LOW){
+    return false;
+  }
+
+  Serial.println("Touch interrupt triggered");
+
+  Wire.beginTransmission(myTouchI2C);
+
+  if (Wire.endTransmission() != 0){
+
+    Serial.println("Touch I2C failed");
+
+    return false;
+  }
+
+  uint8_t myBuf[5];
+
+  Wire.requestFrom(myTouchI2C, 5);
+
+  for (int i=0; i<5; i++){
+    myBuf[i] = Wire.read();
+  }
+
+  if (myBuf[0] == 0x01){
+
+    int myRawX = myBuf[2];
+    int myRawY = myBuf[4];
+
+    myTouchX = myScreenWidth - myRawY;
+    myTouchY = myRawX;
+
+    Serial.print("Touch X=");
+    Serial.print(myTouchX);
+
+    Serial.print(" Y=");
+    Serial.println(myTouchY);
+
+    return true;
+  }
+
+  return false;
+}
+
+
+
+
+// ========================================================
+// WIFI
+// ========================================================
+void myConnectWifi(){
+
+  Serial.println("Connecting WiFi...");
+
+  myDisplayedText = "Connecting WiFi";
+  myDrawScreen();
+
+  WiFi.begin(mySSID, myPassword);
+
+  while (WiFi.status() != WL_CONNECTED){
+
+    Serial.print(".");
+
+    delay(500);
+  }
+
+  Serial.println();
+
+  Serial.println("WiFi connected");
+
+  Serial.print("IP = ");
+  Serial.println(WiFi.localIP());
+
+  myDisplayedText = "WiFi OK";
+
+  myDrawScreen();
+
+  delay(1000);
+}
+
+
+
+
+// ========================================================
+// RECORD AUDIO
+// ========================================================
+bool myRecordAudio(){
+
+  Serial.println("Recording started");
+
+  myRecording = true;
+
+  myDisplayedText = "Recording...";
+
+  myDrawScreen();
+
+
+  myWavBuffer =
+    myI2S.recordWAV(5, &myWavSize);
+
+
+  myRecording = false;
+
+  Serial.print("WAV size = ");
+  Serial.println(myWavSize);
+
+
+  if (!myWavBuffer){
+
+    Serial.println("Mic failed");
+
+    myDisplayedText = "Mic Failed";
+
+    myDrawScreen();
+
+    return false;
+  }
+
+
+  Serial.println("Recording complete");
+
+  myDisplayedText = "Audio captured";
+
+  myDrawScreen();
+
+  return true;
+}
+
+
+
+
+// ========================================================
+// GEMINI
+// ========================================================
+void mySendSpeechToText(){
+
+  Serial.println("Preparing Gemini request");
+
+  myDisplayedText = "Base64 encode";
+
+  myDrawScreen();
+
+
+  String myAudioB64 =
+    base64::encode(myWavBuffer, myWavSize);
+
+
+  Serial.print("Base64 size = ");
+  Serial.println(myAudioB64.length());
+
+
+  String myJson =
+  "{"
+    "\"contents\":[{"
+      "\"parts\":["
+        "{"
+          "\"text\":\"Transcribe this speech exactly.\""
+        "},"
+        "{"
+          "\"inline_data\":{"
+            "\"mime_type\":\"audio/wav\","
+            "\"data\":\"" + myAudioB64 + "\""
+          "}"
+        "}"
+      "]"
+    "}]"
+  "}";
+
+
+  Serial.print("JSON size = ");
+  Serial.println(myJson.length());
+
+
+  myDisplayedText = "Connecting Gemini";
+
+  myDrawScreen();
+
+
+  WiFiClientSecure myClient;
+
+  myClient.setInsecure();
+
+
+  if (!myClient.connect(
+    "generativelanguage.googleapis.com",
+    443)){
+
+    Serial.println("HTTPS failed");
+
+    myDisplayedText = "HTTPS Failed";
+
+    myDrawScreen();
+
+    return;
+  }
+
+
+  Serial.println("Gemini connected");
+
+
+  String myPath =
+    "/v1beta/models/gemini-2.0-flash:generateContent?key=" +
+    String(myApiKey);
+
+
+  myClient.println("POST " + myPath + " HTTP/1.1");
+  myClient.println("Host: generativelanguage.googleapis.com");
+  myClient.println("Content-Type: application/json");
+  myClient.println("Content-Length: " + String(myJson.length()));
+  myClient.println();
+
+  myClient.print(myJson);
+
+
+  Serial.println("Request sent");
+
+  myDisplayedText = "Waiting reply";
+
+  myDrawScreen();
+
+
+  while (myClient.connected()){
+
+    String myLine =
+      myClient.readStringUntil('\n');
+
+    if (myLine == "\r"){
+      break;
+    }
+  }
+
+
+  String myResponse =
+    myClient.readString();
+
+
+  Serial.println("Gemini response:");
+  Serial.println(myResponse);
+
+
+  DynamicJsonDocument myDoc(16384);
+
+  DeserializationError myError =
+    deserializeJson(myDoc, myResponse);
+
+
+  if (myError){
+
+    Serial.println("JSON parse failed");
+
+    myDisplayedText = "JSON Failed";
+
+    myDrawScreen();
+
+    return;
+  }
+
+
+  String mySpeech = "";
+
+  if (
+    myDoc["candidates"][0]["content"]["parts"][0]["text"]
+  ){
+
+    mySpeech =
+      myDoc["candidates"][0]["content"]["parts"][0]["text"].as<String>();
+
+  } else {
+
+    mySpeech = "No text returned";
+  }
+
+
+  Serial.println("Speech Result:");
+  Serial.println(mySpeech);
+
+
+  myDisplayedText = mySpeech;
+
+  myDrawScreen();
+}
+
+
+
+
+// ========================================================
+// SETUP
+// ========================================================
+void setup(){
+
+  Serial.begin(115200);
+
+  delay(2000);
+
+
+  Serial.println();
+  Serial.println("====================");
+  Serial.println("BOOT START");
+  Serial.println("====================");
+
+
+  // DISPLAY
+  Serial.println("Init display");
+
+  myTft.init();
+
+  myTft.setRotation(3);
+
+  myDrawScreen();
+
+
+  // TOUCH
+  Serial.println("Init touch");
+
+  pinMode(myTouchInt, INPUT_PULLUP);
+
+  Wire.begin();
+
+
+  // MIC
+  Serial.println("Init mic");
+
+  myI2S.setPinsPdmRx(42, 41);
+
+  if (!myI2S.begin(
+    I2S_MODE_PDM_RX,
+    16000,
+    I2S_DATA_BIT_WIDTH_16BIT,
+    I2S_SLOT_MODE_MONO)){
+
+    Serial.println("MIC FAILED");
+
+    while(1);
+  }
+
+
+  myConnectWifi();
+
+
+  myDisplayedText = "Touch REC";
+
+  myDrawScreen();
+
+
+  Serial.println("Setup complete");
+}
+
+
+
+
+// ========================================================
+// LOOP
+// ========================================================
+void loop(){
+
+  int myTouchX = 0;
+  int myTouchY = 0;
+
+
+  if (myCheckTouch(
+      myTouchX,
+      myTouchY)){
+
+    if (myTouchY > 180){
+
+      Serial.println("REC pressed");
+
+      delay(250);
+
+
+      if (myRecordAudio()){
+
+        mySendSpeechToText();
+      }
+
+      delay(1000);
+    }
+  }
+
+
+  delay(20);
+}
