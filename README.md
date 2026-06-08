@@ -32,6 +32,8 @@ Price list for the equipment I will be using in 2026 [price-2026-00.html](price-
 
 Note: April 2026 new Technique [webmcu-ai](https://github.com/webmcu-ai) demo page at [https://webmcu-ai.github.io/webmcu-vision-web/index.html](https://webmcu-ai.github.io/webmcu-vision-web/index.html)
 
+Note: Student Ryan H found the [Arduino Droid](https://play.google.com/store/apps/details?id=name.antonsmirnov.android.arduinodroid2&hl=en) for android phones. The student needed a serial monitor on his phone to test the GPS while outside and he found this app. I have never tried it. There does not seem to be the equivalent for Mac, although Arduino has an online version of it's software. I prefer platformIO if you have a internet.
+
 
 
 **Teacher Extras:** [See Appendix A](#appendix-a-teacher-extras---why-not-use-the-xiao-expansion-board-and-round-display)
